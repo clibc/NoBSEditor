@@ -19,6 +19,3 @@ typedef double f64;
 #include <float.h>
 #define F32Max FLT_MAX
 #define F32Min FLT_MIN
-
-#define printfl(x) printf("%s\n", x)
-#define DebugLog(...) fprintf(stdout, __VA_ARGS__)
