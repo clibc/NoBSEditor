@@ -129,6 +129,7 @@ LoadOpenGLFuncs() {
     assert(glGetAttribLocation);
     assert(glGetUniformLocation);
     assert(glUniform3fv);
+    assert(wglChoosePixelFormatARB);
 }
 
 static void
