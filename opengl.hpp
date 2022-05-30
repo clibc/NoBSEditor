@@ -30,6 +30,7 @@
 #define GL_LINK_STATUS     0x8B82
 #define GL_LINES           0x0001
 #define GL_ELEMENT_ARRAY_BUFFER 0x8893
+#define GL_CLAMP_TO_EDGE   0x812F
 
 typedef ptrdiff_t GLsizeiptr;
 typedef char GLchar;
@@ -175,4 +176,25 @@ InitializeOpenGL(HWND hwnd) {
     // glDepthFunc(GL_LESS);
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_BACK);
+}
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+static HWND
+CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow) {
+    WNDCLASS wc = {};
+    wc.style = CS_OWNDC;
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = "fasted_window_class";
+    assert(RegisterClass(&wc));
+    HWND window_handle = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW,
+                                        wc.lpszClassName,
+                                        "fasted",
+                                        WS_OVERLAPPEDWINDOW,
+                                        CW_USEDEFAULT,CW_USEDEFAULT,
+                                        CW_USEDEFAULT,CW_USEDEFAULT,
+                                        NULL,NULL,hInstance,NULL);
+    assert(window_handle);
+    ShowWindow(window_handle, nCmdShow);
+    return window_handle;
 }
