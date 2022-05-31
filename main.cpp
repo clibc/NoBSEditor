@@ -36,69 +36,80 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 }
 
 static GLuint
-CreateTexture() {
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+CreateFontTexture() {
+    GLuint Texture;
+    glGenTextures(1, &Texture);
+    glBindTexture(GL_TEXTURE_2D, Texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+       
+    HDC DeviceContext = CreateCompatibleDC(0);
+    Assert(DeviceContext);
 
-#if 0
-    u32 width  = 80;
-    u32 height = 60;
-    u32* buffer = (u32*)VirtualAlloc(NULL, sizeof(u32)*width*height, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
-    assert(buffer);
-    u32* pixel = buffer;
-    for(u32 v = 0; v < height; ++v) {
-        for(u32 u = 0; u < width; ++u) {
-            // AAGGBBRR
-            f32 x = (f32)u/(f32)width; 
-            f32 y = (f32)v/(f32)height;
-            u32 p = 0xFF000000;
-            u32 x1 = (u32)(x*255);
+    AddFontResourceA("C:/Windows/Fonts/LiberationMono-Regular.ttf");
+    HFONT Font = CreateFontA(30, 0, 0, 0,
+                             FW_REGULAR, // weight
+                             FALSE, // italic
+                             FALSE, // underline
+                             FALSE, // strike out
+                             ANSI_CHARSET,
+                             OUT_DEFAULT_PRECIS,
+                             CLIP_DEFAULT_PRECIS,
+                             ANTIALIASED_QUALITY,
+                             DEFAULT_PITCH|FF_DONTCARE,
+                             "Liberation Mono");
+    Assert(Font);
 
-            p = p | (x1 << 16);
+    SelectObject(DeviceContext, Font);
+    SetBkColor(DeviceContext, RGB(0,0,0));
+    SetTextColor(DeviceContext, RGB(255,255,255));
 
-            *pixel = p;
-            ++pixel;
-        }
-    }
-#else
-    HDC Device_Context = CreateCompatibleDC(0);
-
-    wchar_t character = (wchar_t)'N';
-    TEXTMETRIC text_metric;
-    GetTextMetrics(Device_Context, &text_metric);
     
-    SIZE font_size;
-    GetTextExtentPoint32(Device_Context, (LPCSTR)&character, 1, &font_size);
-    u32 width  = font_size.cx;
-    u32 height = font_size.cy;
-    HBITMAP bitmap = CreateCompatibleBitmap(Device_Context, width, height);
-    SelectObject(Device_Context, bitmap);
-    SetBkColor(Device_Context, RGB(0,0,0));
-    SetTextColor(Device_Context, RGB(255,255,255));
-    TextOutW(Device_Context, 0, 0, &character, 1);
+    wchar_t TempCharacter = (wchar_t)'A';
+    SIZE CharSize;
+    GetTextExtentPoint32A(DeviceContext, (LPCSTR)&TempCharacter, 1, &CharSize);
+    u32 CharacterPerLine = 20;
+    u32 TextureWidth  = CharSize.cx * 20;
+    u32 TextureHeight = CharSize.cy * 5;
 
-    u32* buffer = (u32*)VirtualAlloc(NULL, sizeof(u32)*width*height, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
-    u32* pixel = buffer;
-    for(u32 v = 0; v < height; ++v) {
-        for(u32 u = 0; u < width; ++u) {
-            // AAGGBBRR
-            u32 color = GetPixel(Device_Context, u, height - 1 - v);
+    HBITMAP Bitmap = CreateCompatibleBitmap(DeviceContext, TextureWidth, TextureHeight);
+    Assert(Bitmap);
+    SelectObject(DeviceContext, Bitmap);
 
-            color &= 0xFF00FF00;
-            *pixel = color;
-            ++pixel;
+    
+    u32 PitchX = 0;
+    u32 PitchY = 0;
+    for(s32 i = 33; i < 127; ++i) {
+        wchar_t Character = (wchar_t)i;
+        TextOutW(DeviceContext, PitchX, PitchY, &Character, 1);
+
+        if((i-32) % 20 == 0) {
+            PitchX = 0;
+            PitchY += CharSize.cy;
+        } else {
+            PitchX += CharSize.cx;
         }
     }
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-#endif
 
-    Sleep(1000);
-    return texture;
+    u32* Buffer = (u32*)VirtualAlloc(NULL, sizeof(u32)*TextureWidth*TextureHeight,
+                                     MEM_COMMIT|MEM_RESERVE,
+                                     PAGE_READWRITE);
+
+    u32* PixelPtr = Buffer;
+    
+    for(s32 v = 0; v < TextureHeight; ++v) {
+        for(s32 u = 0; u < TextureWidth; ++u) {
+            u32 Color =  GetPixel(DeviceContext, u, TextureHeight - v - 1);
+            *PixelPtr = Color;
+            ++PixelPtr;
+        }
+    }
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TextureWidth, TextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
+
+    return Texture;
 }
 
 s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
@@ -132,7 +143,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(f32)*5, (void*)(sizeof(f32)*3));
     glEnableVertexAttribArray(1);
 
-    GLuint texture = CreateTexture();
+    GLuint texture = CreateFontTexture();
     
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0) > 0 && Is_Running) {

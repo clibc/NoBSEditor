@@ -1,5 +1,7 @@
 #pragma once
 
+#define Assert(x) assert(x)
+
 struct ReadEntireFileResult {
     char* content;
     s32   size;
