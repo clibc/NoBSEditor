@@ -20,9 +20,39 @@ HDC Device_Context;
 
 struct Vertex {
     v3  Position;
-    u32 CharIndex;
     u32 TextureIndex;
 };
+
+static void
+CreateFontLookupTable(const CreateFontTextureResult& FontData) {
+    v2* TextureCoords = (v2*)AllocateMemory(sizeof(v2) * 94 * 4);
+
+    f32 Width  = (f32)FontData.TextureWidth;
+    f32 Height = (f32)FontData.TextureHeight;
+    f32 CharacterWidth  = (f32)FontData.CharacterWidth;
+    f32 CharacterHeight = (f32)FontData.CharacterHeight;
+    
+    for(s32 i = 33; i < 127; ++i) {
+        s32 Index = i-33;
+        f32 IndexX = Index % FontData.CharacterPerLine;
+        f32 IndexY = Index / FontData.CharacterPerLine;
+
+        // Top left
+        TextureCoords[Index + 0].x = IndexX * CharacterWidth / Width;
+        TextureCoords[Index + 0].y = IndexY * CharacterWidth / Height;
+        // Top Rigth
+        TextureCoords[Index + 1].x = (IndexX * CharacterWidth + CharacterWidth) / Width;
+        TextureCoords[Index + 1].y = IndexY * CharacterWidth / Height;
+        // Bottom Left
+        TextureCoords[Index + 2].x = IndexX * CharacterWidth / Width;
+        TextureCoords[Index + 2].y = (IndexY * CharacterHeight - CharacterHeight) / Height;
+        // Bottom Right
+        TextureCoords[Index + 3].x = (IndexX * CharacterWidth + CharacterWidth) / Width;
+        TextureCoords[Index + 3].y = (IndexY * CharacterHeight - CharacterHeight) / Height;
+    }
+
+    DebugLog("Ended\n");
+}
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { 
     switch (uMsg) 
@@ -61,10 +91,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         -1.0, 1.0, 0.0,  0.0, 1.0,
         -1.0, -1.0, 0.0, 0.0, 0.0
     };
-
-    Vertex TestVertex;
-    TestVertex.Position  = {1.0, 1.0, 0.0};
-    TestVertex.CharIndex = (u32)'A' - 32;
     
     f32 GlyphWidth  = 1.0/30;
     f32 GlyphHeight = 1.0/5;
@@ -84,8 +110,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(f32)*5, (void*)(sizeof(f32)*3));
     glEnableVertexAttribArray(1);
 
-    GLuint texture = CreateFontTexture();
-
+    CreateFontTextureResult TextureData = CreateFontTexture();
+    CreateFontLookupTable(TextureData);
+    
     // Define orthographic projection
     f32 Left  = 0;
     f32 Right = WINDOW_WIDTH;

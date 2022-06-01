@@ -9,6 +9,92 @@
 
 static inline float PowerF32(float, float);
 
+struct v2 {
+    float x,y;
+
+    v2(float, float);
+    v2() = default;
+
+    inline float Dot(v2 a)     const;
+    inline v2  Normalize()     const;
+    inline float Length()      const;
+    inline float SqrLength()   const;
+    
+    inline v2 operator+(float) const;
+    inline v2 operator-(float) const;
+    inline v2 operator*(float) const;
+    inline v2 operator/(float) const;
+    inline void operator+=(float);
+    inline void operator-=(float);
+    inline void operator*=(float);
+    inline void operator/=(float);
+    inline v2 operator+(v2) const;
+    inline v2 operator-(v2) const;
+    inline v2 operator*(v2) const;
+    inline v2 operator/(v2) const;
+    inline void operator+=(v2);
+    inline void operator-=(v2);
+    inline void operator*=(v2);
+    inline void operator/=(v2);
+    inline void operator= (v2);
+
+    inline friend v2 operator*(float, v2);
+
+    void Print();
+};
+
+v2::v2(float ix, float iy) {
+    x = ix;
+    y = iy;
+}
+
+inline float v2::Dot(v2 a) const {
+    return x * a.x + y * a.y;
+}
+
+inline v2 v2::Normalize() const {
+    v2 res = {0,0};
+    float length = sqrtf(x*x + y*y);
+    if(length != 0) {
+        res = *this * (1.0f / length);
+    }
+    return res;
+}
+
+inline float v2::Length() const {
+    return sqrtf(x*x + y*y);
+}
+
+inline float v2::SqrLength() const {
+    return x*x + y*y;
+}
+
+inline v2 v2::operator+(float a) const { return { x + a, y + a}; }
+inline v2 v2::operator-(float a) const { return { x - a, y - a}; }
+inline v2 v2::operator*(float a) const { return { x * a, y * a}; }
+inline v2 v2::operator/(float a) const { return { x / a, y / a}; }
+inline void v2::operator+=(float a) { x += a; y += a; }
+inline void v2::operator-=(float a) { x -= a; y -= a; }
+inline void v2::operator*=(float a) { x *= a; y *= a; }
+inline void v2::operator/=(float a) { x /= a; y /= a; }
+inline v2 v2::operator+(v2 a) const { return { x + a.x, y + a.y}; }
+inline v2 v2::operator-(v2 a) const { return { x - a.x, y - a.y}; }
+inline v2 v2::operator*(v2 a) const { return { x * a.x, y * a.y}; }
+inline v2 v2::operator/(v2 a) const { return { x / a.x, y / a.y}; }
+inline void v2::operator+=(v2 a) { x += a.x; y += a.y; }
+inline void v2::operator-=(v2 a) { x -= a.x; y -= a.y; }
+inline void v2::operator*=(v2 a) { x *= a.x; y *= a.y; }
+inline void v2::operator/=(v2 a) { x /= a.x; y /= a.y; }
+inline void v2::operator= (v2 a) { x = a.x; y = a.y; }
+
+inline v2 operator*(float a, v2 v) { return {v.x * a, v.y * a}; }
+
+void v2::Print() {
+#ifdef DebugLog
+    DebugLog("Vec2(%f, %f)\n", x, y);
+#endif
+}
+
 struct v3 {
     float x,y,z;
 

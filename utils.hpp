@@ -13,6 +13,18 @@ ReadEntireFile() {
     return result;
 }
 
+static void*
+AllocateMemory(u32 Size) {
+    return VirtualAlloc(NULL, Size,
+                        MEM_COMMIT|MEM_RESERVE,
+                        PAGE_READWRITE);    
+}
+
+static void
+FreeMemory(void* Memory) {
+    assert(VirtualFree(Memory, 0, MEM_RELEASE));
+}
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static HWND
 CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height) {
@@ -125,8 +137,16 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	return ProgramID;
 }
 
+struct CreateFontTextureResult {
+    u32 TextureID;
+    u32 TextureWidth;
+    u32 TextureHeight;
+    u32 CharacterPerLine;
+    u32 CharacterWidth;
+    u32 CharacterHeight;
+};
 
-static GLuint
+static CreateFontTextureResult
 CreateFontTexture() {
     GLuint Texture;
     glGenTextures(1, &Texture);
@@ -174,7 +194,7 @@ CreateFontTexture() {
         wchar_t Character = (wchar_t)i;
         TextOutW(DeviceContext, PitchX, PitchY, &Character, 1);
 
-        if((i-32) % 20 == 0) {
+        if((i-32) % CharacterPerLine == 0) {
             PitchX = 0;
             PitchY += CharSize.cy;
         } else {
@@ -182,9 +202,7 @@ CreateFontTexture() {
         }
     }
 
-    u32* Buffer = (u32*)VirtualAlloc(NULL, sizeof(u32)*TextureWidth*TextureHeight,
-                                     MEM_COMMIT|MEM_RESERVE,
-                                     PAGE_READWRITE);
+    u32* Buffer = (u32*)AllocateMemory(sizeof(u32)*TextureWidth*TextureHeight);
 
     u32* PixelPtr = Buffer;
     
@@ -197,6 +215,15 @@ CreateFontTexture() {
     }
     
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TextureWidth, TextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
+    
+    CreateFontTextureResult Result;
+    Result.TextureID = Texture;
+    Result.TextureWidth = TextureWidth;
+    Result.TextureHeight = TextureHeight;
+    Result.CharacterPerLine = CharacterPerLine;
+    Result.CharacterWidth  = CharSize.cx;
+    Result.CharacterHeight = CharSize.cy;
 
-    return Texture;
+    FreeMemory(Buffer);
+    return Result;
 }
