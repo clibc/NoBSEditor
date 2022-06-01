@@ -5,7 +5,10 @@ layout (location = 1) in vec2 TextureCoord;
 
 out vec2 TextureOut;
 
+uniform mat4 OrthoMatrix;
+uniform mat4 ModelMatrix;
+
 void main() {
-    gl_Position = vec4(VertexPosition, 1);
+    gl_Position = OrthoMatrix * ModelMatrix * vec4(VertexPosition, 1);
     TextureOut  = TextureCoord;
 }

@@ -10,6 +10,10 @@
 #include "defines.h"
 #include "opengl.hpp"
 #include "utils.hpp"
+#include "math.hpp"
+
+#define WINDOW_WIDTH  800
+#define WINDOW_HEIGHT 600
 
 static bool Is_Running = true;
 HDC Device_Context;
@@ -35,88 +39,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return 0; 
 }
 
-static GLuint
-CreateFontTexture() {
-    GLuint Texture;
-    glGenTextures(1, &Texture);
-    glBindTexture(GL_TEXTURE_2D, Texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-       
-    HDC DeviceContext = CreateCompatibleDC(0);
-    Assert(DeviceContext);
-
-    AddFontResourceA("C:/Windows/Fonts/LiberationMono-Regular.ttf");
-    HFONT Font = CreateFontA(30, 0, 0, 0,
-                             FW_REGULAR, // weight
-                             FALSE, // italic
-                             FALSE, // underline
-                             FALSE, // strike out
-                             ANSI_CHARSET,
-                             OUT_DEFAULT_PRECIS,
-                             CLIP_DEFAULT_PRECIS,
-                             ANTIALIASED_QUALITY,
-                             DEFAULT_PITCH|FF_DONTCARE,
-                             "Liberation Mono");
-    Assert(Font);
-
-    SelectObject(DeviceContext, Font);
-    SetBkColor(DeviceContext, RGB(0,0,0));
-    SetTextColor(DeviceContext, RGB(255,255,255));
-
-    
-    wchar_t TempCharacter = (wchar_t)'A';
-    SIZE CharSize;
-    GetTextExtentPoint32A(DeviceContext, (LPCSTR)&TempCharacter, 1, &CharSize);
-    u32 CharacterPerLine = 20;
-    u32 TextureWidth  = CharSize.cx * 20;
-    u32 TextureHeight = CharSize.cy * 5;
-
-    HBITMAP Bitmap = CreateCompatibleBitmap(DeviceContext, TextureWidth, TextureHeight);
-    Assert(Bitmap);
-    SelectObject(DeviceContext, Bitmap);
-
-    
-    u32 PitchX = 0;
-    u32 PitchY = 0;
-    for(s32 i = 33; i < 127; ++i) {
-        wchar_t Character = (wchar_t)i;
-        TextOutW(DeviceContext, PitchX, PitchY, &Character, 1);
-
-        if((i-32) % 20 == 0) {
-            PitchX = 0;
-            PitchY += CharSize.cy;
-        } else {
-            PitchX += CharSize.cx;
-        }
-    }
-
-    u32* Buffer = (u32*)VirtualAlloc(NULL, sizeof(u32)*TextureWidth*TextureHeight,
-                                     MEM_COMMIT|MEM_RESERVE,
-                                     PAGE_READWRITE);
-
-    u32* PixelPtr = Buffer;
-    
-    for(s32 v = 0; v < TextureHeight; ++v) {
-        for(s32 u = 0; u < TextureWidth; ++u) {
-            u32 Color =  GetPixel(DeviceContext, u, TextureHeight - v - 1);
-            *PixelPtr = Color;
-            ++PixelPtr;
-        }
-    }
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TextureWidth, TextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
-
-    return Texture;
-}
-
 s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
                    LPSTR lpCmdLine, int nCmdShow) {
     assert(AllocConsole());
 
-    HWND window_handle = CreateOpenGLWindow(hInstance, nCmdShow);
+    HWND window_handle = CreateOpenGLWindow(hInstance, nCmdShow,
+                                            WINDOW_WIDTH, WINDOW_HEIGHT);
     Device_Context = GetDC(window_handle);
 
     f32 vertices[] = {   //texture coords
@@ -127,6 +55,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         -1.0, 1.0, 0.0,  0.0, 1.0,
         -1.0, -1.0, 0.0, 0.0, 0.0
     };
+
+    f32 GliphWidth  = 1.0/30;
+    f32 GliphHeight = 1.0/5;
     
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
@@ -144,6 +75,41 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     glEnableVertexAttribArray(1);
 
     GLuint texture = CreateFontTexture();
+
+    // Define orthographic projection
+    f32 Left  = 0;
+    f32 Right = WINDOW_WIDTH;
+    f32 Top   = WINDOW_HEIGHT;
+    f32 Bottom = 0;
+    f32 Near = 0;
+    f32 Far = 5;
+    
+    m4 OrthoMatrix;
+    OrthoMatrix.SetRow(0, 2.0/(Right - Left), 0, 0, 0);
+    OrthoMatrix.SetRow(1, 0, 2.0/(Top - Bottom), 0, 0);
+    OrthoMatrix.SetRow(2, 0, 0, -2.0/(Far - Near), 0);
+    OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
+
+    v3 Position = v3(400, 300, 0);
+    m4 TranslationMatrix;
+    TranslationMatrix.SetRow(0, 1, 0, 0, 0);
+    TranslationMatrix.SetRow(1, 0, 1, 0, 0);
+    TranslationMatrix.SetRow(2, 0, 0, 1, 0);
+    TranslationMatrix.SetRow(3, Position.x, Position.y, Position.z, 1);
+   
+    v3 Scale = v3(180, 140, 1);
+    m4 ScaleMatrix;
+    ScaleMatrix.SetRow(0, Scale.x, 0, 0, 0);
+    ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);
+    ScaleMatrix.SetRow(2, 0, 0, Scale.z, 0);
+    ScaleMatrix.SetRow(3, 0, 0, 0,       1);
+
+    m4 ModelMatrix = ScaleMatrix * TranslationMatrix;
+    
+    GLint OrthoMatrixLocation = glGetUniformLocation(shader_program, "OrthoMatrix");
+    GLint ModelMatrixLocation = glGetUniformLocation(shader_program, "ModelMatrix");
+    glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
+    glUniformMatrix4fv(ModelMatrixLocation, 1, GL_TRUE, (f32*)&ModelMatrix);
     
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0) > 0 && Is_Running) {

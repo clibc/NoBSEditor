@@ -172,29 +172,8 @@ InitializeOpenGL(HWND hwnd) {
     LoadOpenGLFuncs();
     gl_rendering_context = wglCreateContextAttribsARB(device_context, 0, gl_context_attribs);
     assert(wglMakeCurrent(device_context, gl_rendering_context));
-    // glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_LESS);
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
-}
-
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-static HWND
-CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow) {
-    WNDCLASS wc = {};
-    wc.style = CS_OWNDC;
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = hInstance;
-    wc.lpszClassName = "fasted_window_class";
-    assert(RegisterClass(&wc));
-    HWND window_handle = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW,
-                                        wc.lpszClassName,
-                                        "fasted",
-                                        WS_OVERLAPPEDWINDOW,
-                                        CW_USEDEFAULT,CW_USEDEFAULT,
-                                        CW_USEDEFAULT,CW_USEDEFAULT,
-                                        NULL,NULL,hInstance,NULL);
-    assert(window_handle);
-    ShowWindow(window_handle, nCmdShow);
-    return window_handle;
+    //glEnable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
+    //glDisable(GL_CULL_FACE);
+    //glCullFace(GL_BACK);
 }
