@@ -18,6 +18,12 @@
 static bool Is_Running = true;
 HDC Device_Context;
 
+struct Vertex {
+    v3  Position;
+    u32 CharIndex;
+    u32 TextureIndex;
+};
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { 
     switch (uMsg) 
     { 
@@ -56,8 +62,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         -1.0, -1.0, 0.0, 0.0, 0.0
     };
 
-    f32 GliphWidth  = 1.0/30;
-    f32 GliphHeight = 1.0/5;
+    Vertex TestVertex;
+    TestVertex.Position  = {1.0, 1.0, 0.0};
+    TestVertex.CharIndex = (u32)'A' - 32;
+    
+    f32 GlyphWidth  = 1.0/30;
+    f32 GlyphHeight = 1.0/5;
     
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
