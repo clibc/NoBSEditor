@@ -23,6 +23,6 @@ typedef double f64;
 #define DebugLog(...)                        \
     {                                                                   \
         char temp[200] = {};                                            \
-        sprintf(temp, __VA_ARGS__);                                     \
-        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), temp, strlen(temp), NULL, NULL); \
+        DWORD Size = sprintf(temp, __VA_ARGS__);                        \
+        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), temp, Size, NULL, NULL); \
     }                                               

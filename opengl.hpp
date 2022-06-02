@@ -61,6 +61,7 @@ GLint (ENTRY *glGetAttribLocation)(GLuint, const GLchar*);
 GLint (ENTRY *glGetUniformLocation)(GLuint, const GLchar*);
 void  (ENTRY *glUniform3fv)(GLuint, GLsizei, const GLfloat*);
 void  (ENTRY *glUniform2fv)(GLuint, GLsizei, const GLfloat*);
+void  (ENTRY *glUniform1i)(GLuint, GLint);
 bool  (ENTRY *wglChoosePixelFormatARB)(HDC, const int*, const FLOAT *, UINT, int*, UINT*);
 
 static void*
@@ -106,6 +107,7 @@ LoadOpenGLFuncs() {
     glGetUniformLocation = (GLint (ENTRY*)(GLuint,const GLchar*))GetFuncAddress("glGetUniformLocation");
     glUniform3fv = (void (ENTRY*)(GLuint, GLsizei, const GLfloat*))GetFuncAddress("glUniform3fv");
     glUniform2fv = (void (ENTRY*)(GLuint, GLsizei, const GLfloat*))GetFuncAddress("glUniform2fv");
+    glUniform1i = (void (ENTRY*)(GLuint, GLint))GetFuncAddress("glUniform1i");
     wglChoosePixelFormatARB = (bool (ENTRY*)(HDC, const int*, const float *, unsigned int, int*, unsigned int*))GetFuncAddress("wglChoosePixelFormatARB");
     
     assert(glGenBuffers);
@@ -135,6 +137,7 @@ LoadOpenGLFuncs() {
     assert(glGetUniformLocation);
     assert(glUniform3fv);
     assert(glUniform2fv);
+    assert(glUniform1i);
     assert(wglChoosePixelFormatARB);
 }
 

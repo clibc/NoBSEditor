@@ -210,8 +210,8 @@ CreateFontTexture() {
 
     u32* PixelPtr = Buffer;
     
-    for(s32 v = 0; v < TextureHeight; ++v) {
-        for(s32 u = 0; u < TextureWidth; ++u) {
+    for(u32 v = 0; v < TextureHeight; ++v) {
+        for(u32 u = 0; u < TextureWidth; ++u) {
             u32 Color =  GetPixel(DeviceContext, u, TextureHeight - v - 1);
             *PixelPtr = Color;
             ++PixelPtr;

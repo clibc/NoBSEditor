@@ -7,6 +7,9 @@
 #include <sstream>
 #include <vector>
 
+// Disable type convertion warning
+#pragma warning(disable : 4244)
+
 #include "defines.h"
 #include "opengl.hpp"
 #include "utils.hpp"
@@ -18,17 +21,13 @@
 static bool Is_Running = true;
 HDC Device_Context;
 
-struct Vertex {
-    v3  Position;
-    u32 TextureIndex;
-};
+static char Text[150] = {};
+static s32  CursorPos = 0;
 
 static v2*
 CreateFontLookupTable(const CreateFontTextureResult& FontData) {
     v2* TextureCoords = (v2*)AllocateMemory(sizeof(v2) * 94 * 4);
 
-    f32 Width  = (f32)FontData.TextureWidth;
-    f32 Height = (f32)FontData.TextureHeight;
     f32 CW = (f32)FontData.CharacterWidth / (f32)FontData.TextureWidth;
     f32 CH = (f32)FontData.CharacterHeight / (f32)FontData.TextureHeight;
 
@@ -72,6 +71,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_DESTROY: {
         Is_Running = false;
     } break;
+    case WM_CHAR:
+        DebugLog("WM_SYSKEYDOWN: %c\n", (char)wParam);
+        Text[CursorPos++] = (char)wParam;
+        break;
     default:
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     } 
@@ -89,23 +92,32 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     CreateFontTextureResult TextureData = CreateFontTexture();
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
 
-    // f32 vertices[] = {   //texture coords
-    //     1.0, 1.0, 0.0,   // Top Right 0
-    //     -1.0, -1.0, 0.0, // Bot left  1
-    //     1.0, -1.0, 0.0,  // Bot Right 2
-    //     1.0, 1.0, 0.0,   // Top Right 0
-    //     -1.0, 1.0, 0.0,  // Top Left  3
-    //     -1.0, -1.0, 0.0, // Bot Left  1
-    // };
-
+#if 0
+    f32 vertices[] = {   //texture coords
+        1.0, 1.0, 0.0,   // Top Right 0
+        -1.0, -1.0, 0.0, // Bot left  1
+        1.0, -1.0, 0.0,  // Bot Right 2
+        1.0, 1.0, 0.0,   // Top Right 0
+        -1.0, 1.0, 0.0,  // Top Left  3
+        -1.0, -1.0, 0.0, // Bot Left  1
+    };
     f32 Vertices[] = {   //texture coords
         1.0, 1.0, 0.0,   // Top Right 0
         -1.0, -1.0, 0.0, // Bot left  1
         1.0, -1.0, 0.0,  // Bot Right 2
         -1.0, 1.0, 0.0,  // Top Left  3
     };
-
     s32 VertexIndices[] = {0, 1, 2, 0, 3, 1};
+#endif
+    
+    f32 Vertices[] = {   //texture coords
+        -1.0, 1.0, 0.0,  // Top Left  0
+        1.0, 1.0, 0.0,   // Top Right 1
+        -1.0, -1.0, 0.0, // Bot left  2
+        1.0, -1.0, 0.0,  // Bot Right 3
+    };
+    
+    s32 VertexIndices[] = {1, 2, 3, 1, 0, 2};
 
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
@@ -134,7 +146,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OrthoMatrix.SetRow(2, 0, 0, -2.0/(Far - Near), 0);
     OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
 
-    v3 Position = v3(400, 300, 0);
+    v3 Position = v3(0, 0, 0);
     m4 TranslationMatrix;
     TranslationMatrix.SetRow(0, 1, 0, 0, 0);
     TranslationMatrix.SetRow(1, 0, 1, 0, 0);
@@ -142,7 +154,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     TranslationMatrix.SetRow(3, Position.x, Position.y, Position.z, 1);
 
     f32 CharAspectRatio = 16.0f/30.0f;
-    v3 Scale = v3(180, 140, 1);
+    v3 Scale = v3(16, 30, 1);
     Scale.y /= CharAspectRatio;
     m4 ScaleMatrix;
     ScaleMatrix.SetRow(0, Scale.x, 0, 0, 0);
@@ -156,15 +168,18 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     s32 ModelMatrixLocation = glGetUniformLocation(shader_program, "ModelMatrix");
     s32 TextureLookupTableLocation = glGetUniformLocation(shader_program, "TextureLookupTable");
     s32 VertexLookupTableLocation = glGetUniformLocation(shader_program, "VertexLookupTable");
+    s32 CharacterIndexLocation = glGetUniformLocation(shader_program, "CharacterIndex");
     glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
     glUniformMatrix4fv(ModelMatrixLocation, 1, GL_TRUE, (f32*)&ModelMatrix);
     glUniform2fv(TextureLookupTableLocation, 94 * 4, (f32*)TextureLookupTable);
     glUniform3fv(VertexLookupTableLocation, 6, (f32*)Vertices);
     assert(TextureLookupTableLocation > 0);
     assert(VertexLookupTableLocation > 0);
+    assert(CharacterIndexLocation > 0);
 
     FreeMemory(TextureLookupTable);
-
+    
+    s32 CharactersPerLine = WINDOW_WIDTH / (Scale.x*2);
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0) > 0 && Is_Running) {
         TranslateMessage(&msg);
@@ -172,13 +187,29 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         
         glClearColor(1,0,0,1);
         glClear(GL_COLOR_BUFFER_BIT);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        for(u32 i = 0; i < 150; ++i) {
+            if(Text[i] == 0) break;
+
+            Position = v3((i%CharactersPerLine) * Scale.x*2 + Scale.x, WINDOW_HEIGHT - Scale.y - (i/CharactersPerLine) * Scale.y*2, 0);
+            TranslationMatrix.SetRow(0, 1, 0, 0, 0);
+            TranslationMatrix.SetRow(1, 0, 1, 0, 0);
+            TranslationMatrix.SetRow(2, 0, 0, 1, 0);
+            TranslationMatrix.SetRow(3, Position.x, Position.y, Position.z, 1);
+            
+            ModelMatrix = ScaleMatrix * TranslationMatrix;
+            glUniformMatrix4fv(ModelMatrixLocation, 1, GL_TRUE, (f32*)&ModelMatrix);
+
+            glUniform1i(CharacterIndexLocation, Text[i]-33);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
         
-        SwapBuffers(Device_Context);
         if (GetKeyState(VK_ESCAPE) & 0x8000)
         {
             Is_Running = false;
         }
+
+        SwapBuffers(Device_Context);
     }
     
     return 0;
