@@ -154,8 +154,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     TranslationMatrix.SetRow(3, Position.x, Position.y, Position.z, 1);
 
     f32 CharAspectRatio = 16.0f/30.0f;
-    v3 Scale = v3(16, 30, 1);
-    Scale.y /= CharAspectRatio;
+    v3 Scale = v3(12, 30, 1);
+    Scale.y = Scale.x / CharAspectRatio;
     m4 ScaleMatrix;
     ScaleMatrix.SetRow(0, Scale.x, 0, 0, 0);
     ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);

@@ -160,11 +160,11 @@ CreateFontTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
        
-    HDC DeviceContext = CreateCompatibleDC(0);
+    HDC DeviceContext = CreateCompatibleDC(GetDC(0));
     Assert(DeviceContext);
 
     AddFontResourceA("C:/Windows/Fonts/LiberationMono-Regular.ttf");
-    HFONT Font = CreateFontA(30, 0, 0, 0,
+    HFONT Font = CreateFontA(60, 0, 0, 0,
                              FW_REGULAR, // weight
                              FALSE, // italic
                              FALSE, // underline
@@ -187,15 +187,34 @@ CreateFontTexture() {
     u32 CharacterPerLine = 20;
     u32 TextureWidth  = CharSize.cx * 20;
     u32 TextureHeight = CharSize.cy * 5;
-
+    
+    BITMAPINFO Info;
+    Info.bmiHeader.biSize = sizeof(Info.bmiHeader);
+    Info.bmiHeader.biWidth = TextureWidth;
+    Info.bmiHeader.biHeight = TextureHeight;
+    Info.bmiHeader.biPlanes = 1;
+    Info.bmiHeader.biBitCount = 32;
+    Info.bmiHeader.biCompression = BI_RGB;
+    Info.bmiHeader.biSizeImage = 0;
+    Info.bmiHeader.biXPelsPerMeter = 0;
+    Info.bmiHeader.biYPelsPerMeter = 0;
+    Info.bmiHeader.biClrUsed = 0;
+    Info.bmiHeader.biClrImportant = 0;
+    
+    void* BitmapPixels;
+    HBITMAP Bitmap2 = CreateDIBSection(DeviceContext, &Info, DIB_RGB_COLORS, &BitmapPixels, NULL, NULL);
+    Assert(Bitmap2);
+    
     HBITMAP Bitmap = CreateCompatibleBitmap(DeviceContext, TextureWidth, TextureHeight);
     Assert(Bitmap);
-    SelectObject(DeviceContext, Bitmap);
+    SelectObject(DeviceContext, Bitmap2);
     
     u32 PitchX = 0;
     u32 PitchY = 0;
     for(s32 i = 33; i < 127; ++i) {
         wchar_t Character = (wchar_t)i;
+        SIZE CharSize;
+        GetTextExtentPoint32A(DeviceContext, (LPCSTR)&Character, 1, &CharSize);
         TextOutW(DeviceContext, PitchX, PitchY, &Character, 1);
 
         if((i-32) % CharacterPerLine == 0) {
