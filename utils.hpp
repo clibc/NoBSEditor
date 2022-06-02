@@ -22,7 +22,11 @@ AllocateMemory(u32 Size) {
 
 static void
 FreeMemory(void* Memory) {
-    assert(VirtualFree(Memory, 0, MEM_RELEASE));
+    s32 Result = VirtualFree(Memory, 0, MEM_RELEASE);
+    if(!Result) {
+        DebugLog("FreeMemory failed with error code: %i", GetLastError());
+    }
+    assert(Result);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

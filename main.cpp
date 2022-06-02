@@ -23,35 +23,38 @@ struct Vertex {
     u32 TextureIndex;
 };
 
-static void
+static v2*
 CreateFontLookupTable(const CreateFontTextureResult& FontData) {
     v2* TextureCoords = (v2*)AllocateMemory(sizeof(v2) * 94 * 4);
 
     f32 Width  = (f32)FontData.TextureWidth;
     f32 Height = (f32)FontData.TextureHeight;
-    f32 CharacterWidth  = (f32)FontData.CharacterWidth;
-    f32 CharacterHeight = (f32)FontData.CharacterHeight;
-    
+    f32 CW = (f32)FontData.CharacterWidth / (f32)FontData.TextureWidth;
+    f32 CH = (f32)FontData.CharacterHeight / (f32)FontData.TextureHeight;
+
+    s32 ArrayIndex = 0;
     for(s32 i = 33; i < 127; ++i) {
         s32 Index = i-33;
         f32 IndexX = Index % FontData.CharacterPerLine;
         f32 IndexY = Index / FontData.CharacterPerLine;
 
         // Top left
-        TextureCoords[Index + 0].x = IndexX * CharacterWidth / Width;
-        TextureCoords[Index + 0].y = IndexY * CharacterWidth / Height;
+        TextureCoords[ArrayIndex + 0].x = CW*IndexX;
+        TextureCoords[ArrayIndex + 0].y = 1.0 - CH * IndexY;
         // Top Rigth
-        TextureCoords[Index + 1].x = (IndexX * CharacterWidth + CharacterWidth) / Width;
-        TextureCoords[Index + 1].y = IndexY * CharacterWidth / Height;
+        TextureCoords[ArrayIndex + 1].x = CW*IndexX + CW;
+        TextureCoords[ArrayIndex + 1].y = 1.0 - CH * IndexY;
         // Bottom Left
-        TextureCoords[Index + 2].x = IndexX * CharacterWidth / Width;
-        TextureCoords[Index + 2].y = (IndexY * CharacterHeight - CharacterHeight) / Height;
+        TextureCoords[ArrayIndex + 2].x = CW*IndexX;
+        TextureCoords[ArrayIndex + 2].y = 1.0 - CH - CH * IndexY;
         // Bottom Right
-        TextureCoords[Index + 3].x = (IndexX * CharacterWidth + CharacterWidth) / Width;
-        TextureCoords[Index + 3].y = (IndexY * CharacterHeight - CharacterHeight) / Height;
+        TextureCoords[ArrayIndex + 3].x = CW*IndexX + CW;
+        TextureCoords[ArrayIndex + 3].y = 1.0 - CH - CH * IndexY;
+        ArrayIndex += 4;
     }
 
     DebugLog("Ended\n");
+    return TextureCoords;
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { 
@@ -83,35 +86,39 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                             WINDOW_WIDTH, WINDOW_HEIGHT);
     Device_Context = GetDC(window_handle);
 
-    f32 vertices[] = {   //texture coords
-        1.0, 1.0, 0.0,   1.0, 1.0,
-        -1.0, -1.0, 0.0, 0.0, 0.0,
-        1.0, -1.0, 0.0,  1.0, 0.0,
-        1.0, 1.0, 0.0,   1.0, 1.0,
-        -1.0, 1.0, 0.0,  0.0, 1.0,
-        -1.0, -1.0, 0.0, 0.0, 0.0
+    CreateFontTextureResult TextureData = CreateFontTexture();
+    v2* TextureLookupTable = CreateFontLookupTable(TextureData);
+
+    // f32 vertices[] = {   //texture coords
+    //     1.0, 1.0, 0.0,   // Top Right 0
+    //     -1.0, -1.0, 0.0, // Bot left  1
+    //     1.0, -1.0, 0.0,  // Bot Right 2
+    //     1.0, 1.0, 0.0,   // Top Right 0
+    //     -1.0, 1.0, 0.0,  // Top Left  3
+    //     -1.0, -1.0, 0.0, // Bot Left  1
+    // };
+
+    f32 Vertices[] = {   //texture coords
+        1.0, 1.0, 0.0,   // Top Right 0
+        -1.0, -1.0, 0.0, // Bot left  1
+        1.0, -1.0, 0.0,  // Bot Right 2
+        -1.0, 1.0, 0.0,  // Top Left  3
     };
-    
-    f32 GlyphWidth  = 1.0/30;
-    f32 GlyphHeight = 1.0/5;
-    
+
+    s32 VertexIndices[] = {0, 1, 2, 0, 3, 1};
+
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexIndices), VertexIndices, GL_STATIC_DRAW);
 
     GLuint shader_program = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
 
     glUseProgram(shader_program);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(f32)*5, 0);
+    glVertexAttribIPointer(0, 1, GL_INT, 0, 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(f32)*5, (void*)(sizeof(f32)*3));
-    glEnableVertexAttribArray(1);
-
-    CreateFontTextureResult TextureData = CreateFontTexture();
-    CreateFontLookupTable(TextureData);
     
     // Define orthographic projection
     f32 Left  = 0;
@@ -133,8 +140,10 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     TranslationMatrix.SetRow(1, 0, 1, 0, 0);
     TranslationMatrix.SetRow(2, 0, 0, 1, 0);
     TranslationMatrix.SetRow(3, Position.x, Position.y, Position.z, 1);
-   
+
+    f32 CharAspectRatio = 16.0f/30.0f;
     v3 Scale = v3(180, 140, 1);
+    Scale.y /= CharAspectRatio;
     m4 ScaleMatrix;
     ScaleMatrix.SetRow(0, Scale.x, 0, 0, 0);
     ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);
@@ -143,11 +152,19 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     m4 ModelMatrix = ScaleMatrix * TranslationMatrix;
     
-    GLint OrthoMatrixLocation = glGetUniformLocation(shader_program, "OrthoMatrix");
-    GLint ModelMatrixLocation = glGetUniformLocation(shader_program, "ModelMatrix");
+    s32 OrthoMatrixLocation = glGetUniformLocation(shader_program, "OrthoMatrix");
+    s32 ModelMatrixLocation = glGetUniformLocation(shader_program, "ModelMatrix");
+    s32 TextureLookupTableLocation = glGetUniformLocation(shader_program, "TextureLookupTable");
+    s32 VertexLookupTableLocation = glGetUniformLocation(shader_program, "VertexLookupTable");
     glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
     glUniformMatrix4fv(ModelMatrixLocation, 1, GL_TRUE, (f32*)&ModelMatrix);
-    
+    glUniform2fv(TextureLookupTableLocation, 94 * 4, (f32*)TextureLookupTable);
+    glUniform3fv(VertexLookupTableLocation, 6, (f32*)Vertices);
+    assert(TextureLookupTableLocation > 0);
+    assert(VertexLookupTableLocation > 0);
+
+    FreeMemory(TextureLookupTable);
+
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0) > 0 && Is_Running) {
         TranslateMessage(&msg);

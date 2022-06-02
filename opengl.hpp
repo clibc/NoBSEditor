@@ -1,5 +1,7 @@
 #pragma once
 
+#define ENTRY __stdcall 
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
 #define WGL_CONTEXT_PROFILE_MASK_ARB  0x9126
@@ -17,9 +19,6 @@
 #define WGL_SAMPLE_BUFFERS_ARB    0x2041
 #define WGL_SAMPLES_ARB           0x2042
 #define WGL_FULL_ACCELERATION_ARB 0x2027
-
-
-#define ENTRY __stdcall 
 
 #define GL_ARRAY_BUFFER    0x8892
 #define GL_STATIC_DRAW     0x88E4
@@ -51,6 +50,7 @@ void (ENTRY *glGetProgramInfoLog)(GLuint, GLsizei, GLsizei*, GLchar*);
 GLuint (ENTRY *glCreateShader)(GLenum);
 GLuint (ENTRY *glCreateProgram)(void);
 void (ENTRY *glVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
+void (ENTRY *glVertexAttribIPointer)(GLuint, GLint, GLenum, GLsizei, const GLvoid*);
 void (ENTRY *glEnableVertexAttribArray)(GLuint);
 void (ENTRY *glUseProgram)(GLuint);
 void (ENTRY *glGenVertexArrays)(GLsizei n,GLuint *arrays);
@@ -60,6 +60,7 @@ void (ENTRY *glUniformMatrix4fv)(GLint, GLsizei, GLboolean, const GLfloat*);
 GLint (ENTRY *glGetAttribLocation)(GLuint, const GLchar*);
 GLint (ENTRY *glGetUniformLocation)(GLuint, const GLchar*);
 void  (ENTRY *glUniform3fv)(GLuint, GLsizei, const GLfloat*);
+void  (ENTRY *glUniform2fv)(GLuint, GLsizei, const GLfloat*);
 bool  (ENTRY *wglChoosePixelFormatARB)(HDC, const int*, const FLOAT *, UINT, int*, UINT*);
 
 static void*
@@ -94,6 +95,7 @@ LoadOpenGLFuncs() {
     glLinkProgram = (void (ENTRY*)(GLuint))GetFuncAddress("glLinkProgram");
     glGetProgramInfoLog = (void (ENTRY*)(GLuint, GLsizei, GLsizei*, GLchar*))GetFuncAddress("glGetProgramInfoLog");
     glVertexAttribPointer =  (void (ENTRY*)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*))GetFuncAddress("glVertexAttribPointer");
+    glVertexAttribIPointer =  (void (ENTRY*)(GLuint, GLint, GLenum, GLsizei, const GLvoid*))GetFuncAddress("glVertexAttribIPointer");
     glEnableVertexAttribArray = (void (ENTRY*)(GLuint))GetFuncAddress("glEnableVertexAttribArray");
     glUseProgram = (void (ENTRY*)(GLuint))GetFuncAddress("glUseProgram");
     wglCreateContextAttribsARB = (HGLRC (ENTRY *)(HDC, HGLRC, const int*))GetFuncAddress("wglCreateContextAttribsARB");
@@ -103,6 +105,7 @@ LoadOpenGLFuncs() {
     glGetAttribLocation = (GLint (ENTRY*)(GLuint,const GLchar*))GetFuncAddress("glGetAttribLocation");
     glGetUniformLocation = (GLint (ENTRY*)(GLuint,const GLchar*))GetFuncAddress("glGetUniformLocation");
     glUniform3fv = (void (ENTRY*)(GLuint, GLsizei, const GLfloat*))GetFuncAddress("glUniform3fv");
+    glUniform2fv = (void (ENTRY*)(GLuint, GLsizei, const GLfloat*))GetFuncAddress("glUniform2fv");
     wglChoosePixelFormatARB = (bool (ENTRY*)(HDC, const int*, const float *, unsigned int, int*, unsigned int*))GetFuncAddress("wglChoosePixelFormatARB");
     
     assert(glGenBuffers);
@@ -121,6 +124,7 @@ LoadOpenGLFuncs() {
     assert(glLinkProgram);
     assert(glGetProgramInfoLog);
     assert(glVertexAttribPointer);
+    assert(glVertexAttribIPointer);
     assert(glEnableVertexAttribArray);
     assert(glUseProgram);
     assert(wglCreateContextAttribsARB);
@@ -130,6 +134,7 @@ LoadOpenGLFuncs() {
     assert(glGetAttribLocation);
     assert(glGetUniformLocation);
     assert(glUniform3fv);
+    assert(glUniform2fv);
     assert(wglChoosePixelFormatARB);
 }
 
