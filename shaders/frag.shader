@@ -6,5 +6,9 @@ in vec2 TextureOut;
 uniform sampler2D Texture1;
 
 void main() {
-    FragColor = vec4(texture(Texture1, TextureOut).rgb, 1);
+    vec4 TexColor = texture(Texture1, TextureOut);
+    float Alpha = TexColor.g;
+    vec4 White = vec4(1);
+    vec4 Bacground = vec4(1,0,0,1);
+    FragColor = mix(Bacground, White, Alpha);
 }

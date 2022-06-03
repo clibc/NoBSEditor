@@ -183,7 +183,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         TranslateMessage(&msg);
         DispatchMessage(&msg);
         
-        glClearColor(1,0,0,1);
+        glClearColor(1,0,0,0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         for(u32 i = 0; i < 150; ++i) {

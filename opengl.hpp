@@ -180,8 +180,6 @@ InitializeOpenGL(HWND hwnd) {
     LoadOpenGLFuncs();
     gl_rendering_context = wglCreateContextAttribsARB(device_context, 0, gl_context_attribs);
     assert(wglMakeCurrent(device_context, gl_rendering_context));
-    //glEnable(GL_DEPTH_TEST);
-    //glDepthFunc(GL_LESS);
-    //glDisable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }

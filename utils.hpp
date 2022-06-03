@@ -164,7 +164,7 @@ CreateFontTexture() {
     Assert(DeviceContext);
 
     AddFontResourceA("C:/Windows/Fonts/LiberationMono-Regular.ttf");
-    HFONT Font = CreateFontA(60, 0, 0, 0,
+    HFONT Font = CreateFontA(72, 0, 0, 0,
                              FW_REGULAR, // weight
                              FALSE, // italic
                              FALSE, // underline
@@ -178,9 +178,10 @@ CreateFontTexture() {
     Assert(Font);
 
     SelectObject(DeviceContext, Font);
-    SetBkColor(DeviceContext, RGB(0,0,0));
+    SetBkColor(DeviceContext, RGB(255,0,0));
     SetTextColor(DeviceContext, RGB(255,255,255));
-    
+    SetBkMode(DeviceContext, TRANSPARENT);
+
     wchar_t TempCharacter = (wchar_t)'A';
     SIZE CharSize;
     GetTextExtentPoint32A(DeviceContext, (LPCSTR)&TempCharacter, 1, &CharSize);
@@ -204,8 +205,9 @@ CreateFontTexture() {
     u32* BitmapPixels;
     HBITMAP Bitmap = CreateDIBSection(DeviceContext, &Info, DIB_RGB_COLORS, (void**)&BitmapPixels, NULL, NULL);
     Assert(Bitmap);
+
     SelectObject(DeviceContext, Bitmap);
-    
+
     u32 PitchX = 0;
     u32 PitchY = 0;
     for(s32 i = 33; i < 127; ++i) {
@@ -245,5 +247,7 @@ CreateFontTexture() {
     Result.CharacterHeight = CharSize.cy;
 
     FreeMemory(Buffer);
+    DeleteObject(Bitmap);
+    DeleteObject(Font);
     return Result;
 }
