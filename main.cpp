@@ -90,24 +90,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     CreateFontTextureResult TextureData = CreateFontTexture();
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
 
-#if 0
-    f32 vertices[] = {   //texture coords
-        1.0, 1.0, 0.0,   // Top Right 0
-        -1.0, -1.0, 0.0, // Bot left  1
-        1.0, -1.0, 0.0,  // Bot Right 2
-        1.0, 1.0, 0.0,   // Top Right 0
-        -1.0, 1.0, 0.0,  // Top Left  3
-        -1.0, -1.0, 0.0, // Bot Left  1
-    };
-    f32 Vertices[] = {   //texture coords
-        1.0, 1.0, 0.0,   // Top Right 0
-        -1.0, -1.0, 0.0, // Bot left  1
-        1.0, -1.0, 0.0,  // Bot Right 2
-        -1.0, 1.0, 0.0,  // Top Left  3
-    };
-    s32 VertexIndices[] = {0, 1, 2, 0, 3, 1};
-#endif
-    
     f32 Vertices[] = {   //texture coords
         -1.0, 1.0, 0.0,  // Top Left  0
         1.0, 1.0, 0.0,   // Top Right 1
@@ -183,7 +165,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         TranslateMessage(&msg);
         DispatchMessage(&msg);
         
-        glClearColor(1,0,0,0);
+        glClearColor(1,0,1,0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         for(u32 i = 0; i < 150; ++i) {

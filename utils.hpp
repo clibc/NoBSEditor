@@ -151,20 +151,12 @@ struct CreateFontTextureResult {
 };
 
 static CreateFontTextureResult
-CreateFontTexture() {
-    GLuint Texture;
-    glGenTextures(1, &Texture);
-    glBindTexture(GL_TEXTURE_2D, Texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-       
+CreateFontTexture() {      
     HDC DeviceContext = CreateCompatibleDC(GetDC(0));
     Assert(DeviceContext);
 
     AddFontResourceA("C:/Windows/Fonts/LiberationMono-Regular.ttf");
-    HFONT Font = CreateFontA(72, 0, 0, 0,
+    HFONT Font = CreateFontA(60, 0, 0, 0,
                              FW_REGULAR, // weight
                              FALSE, // italic
                              FALSE, // underline
@@ -224,19 +216,25 @@ CreateFontTexture() {
         }
     }
 
-    u32* Buffer = (u32*)AllocateMemory(sizeof(u32)*TextureWidth*TextureHeight);
-
-    u32* PixelPtr = Buffer;
+    u8* Buffer = (u8*)AllocateMemory(sizeof(u8)*TextureWidth*TextureHeight);
+    u8* PixelPtr = Buffer;
     
     for(u32 v = 0; v < TextureHeight; ++v) {
         for(u32 u = 0; u < TextureWidth; ++u) {
             u32 Color = *BitmapPixels++;
-            *PixelPtr = Color;
+            *PixelPtr = ((u32*)&Color)[0];
             ++PixelPtr;
         }
     }
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TextureWidth, TextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
+
+    GLuint Texture;
+    glGenTextures(1, &Texture);
+    glBindTexture(GL_TEXTURE_2D, Texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, TextureWidth, TextureHeight, 0, GL_RED, GL_UNSIGNED_BYTE, Buffer);
     
     CreateFontTextureResult Result;
     Result.TextureID = Texture;
