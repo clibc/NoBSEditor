@@ -201,13 +201,10 @@ CreateFontTexture() {
     Info.bmiHeader.biClrUsed = 0;
     Info.bmiHeader.biClrImportant = 0;
     
-    void* BitmapPixels;
-    HBITMAP Bitmap2 = CreateDIBSection(DeviceContext, &Info, DIB_RGB_COLORS, &BitmapPixels, NULL, NULL);
-    Assert(Bitmap2);
-    
-    HBITMAP Bitmap = CreateCompatibleBitmap(DeviceContext, TextureWidth, TextureHeight);
+    u32* BitmapPixels;
+    HBITMAP Bitmap = CreateDIBSection(DeviceContext, &Info, DIB_RGB_COLORS, (void**)&BitmapPixels, NULL, NULL);
     Assert(Bitmap);
-    SelectObject(DeviceContext, Bitmap2);
+    SelectObject(DeviceContext, Bitmap);
     
     u32 PitchX = 0;
     u32 PitchY = 0;
@@ -231,7 +228,7 @@ CreateFontTexture() {
     
     for(u32 v = 0; v < TextureHeight; ++v) {
         for(u32 u = 0; u < TextureWidth; ++u) {
-            u32 Color =  GetPixel(DeviceContext, u, TextureHeight - v - 1);
+            u32 Color = *BitmapPixels++;
             *PixelPtr = Color;
             ++PixelPtr;
         }

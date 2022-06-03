@@ -51,8 +51,6 @@ CreateFontLookupTable(const CreateFontTextureResult& FontData) {
         TextureCoords[ArrayIndex + 3].y = 1.0 - CH - CH * IndexY;
         ArrayIndex += 4;
     }
-
-    DebugLog("Ended\n");
     return TextureCoords;
 }
 
@@ -190,6 +188,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         for(u32 i = 0; i < 150; ++i) {
             if(Text[i] == 0) break;
+
+            // Space
+            if(Text[i] == 32) continue;
 
             Position = v3((i%CharactersPerLine) * Scale.x*2 + Scale.x, WINDOW_HEIGHT - Scale.y - (i/CharactersPerLine) * Scale.y*2, 0);
             TranslationMatrix.SetRow(0, 1, 0, 0, 0);
