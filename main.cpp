@@ -37,21 +37,21 @@ CreateFontLookupTable(const CreateFontTextureResult& FontData) {
     s32 ArrayIndex = 0;
     for(s32 i = 33; i < 127; ++i) {
         s32 Index = i-33;
-        f32 IndexX = Index % FontData.CharacterPerLine;
-        f32 IndexY = Index / FontData.CharacterPerLine;
+        f32 IndexX = (f32)(Index % FontData.CharacterPerLine);
+        f32 IndexY = (f32)(Index / FontData.CharacterPerLine);
 
         // Top left
         TextureCoords[ArrayIndex + 0].x = CW*IndexX;
-        TextureCoords[ArrayIndex + 0].y = 1.0 - CH * IndexY;
+        TextureCoords[ArrayIndex + 0].y = 1.0f - CH * IndexY;
         // Top Rigth
         TextureCoords[ArrayIndex + 1].x = CW*IndexX + CW;
-        TextureCoords[ArrayIndex + 1].y = 1.0 - CH * IndexY;
+        TextureCoords[ArrayIndex + 1].y = 1.0f - CH * IndexY;
         // Bottom Left
         TextureCoords[ArrayIndex + 2].x = CW*IndexX;
-        TextureCoords[ArrayIndex + 2].y = 1.0 - CH - CH * IndexY;
+        TextureCoords[ArrayIndex + 2].y = 1.0f - CH - CH * IndexY;
         // Bottom Right
         TextureCoords[ArrayIndex + 3].x = CW*IndexX + CW;
-        TextureCoords[ArrayIndex + 3].y = 1.0 - CH - CH * IndexY;
+        TextureCoords[ArrayIndex + 3].y = 1.0f - CH - CH * IndexY;
         ArrayIndex += 4;
     }
     return TextureCoords;
@@ -92,13 +92,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     CreateFontTextureResult TextureData = CreateFontTexture();
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
-
-    // f32 Vertices[] = {
-    //     -1.0, 1.0, 0.0,  // Top Left  0
-    //     1.0, 1.0, 0.0,   // Top Right 1
-    //     -1.0, -1.0, 0.0, // Bot left  2
-    //     1.0, -1.0, 0.0,  // Bot Right 3
-    // };
     
     f32 Vertices[] = { // Last coordinate is index
         1.0, 1.0, 1.0,   // Top Right 1
@@ -118,9 +111,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     f32 Far = 5;
     
     m4 OrthoMatrix;
-    OrthoMatrix.SetRow(0, 2.0/(Right - Left), 0, 0, 0);
-    OrthoMatrix.SetRow(1, 0, 2.0/(Top - Bottom), 0, 0);
-    OrthoMatrix.SetRow(2, 0, 0, -2.0/(Far - Near), 0);
+    OrthoMatrix.SetRow(0, 2.0f/(Right - Left), 0, 0, 0);
+    OrthoMatrix.SetRow(1, 0, 2.0f/(Top - Bottom), 0, 0);
+    OrthoMatrix.SetRow(2, 0, 0, -2.0f/(Far - Near), 0);
     OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
 
     v3 Position = v3(0, 0, 0);
@@ -167,7 +160,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     WarnIfNot(TextureLookupTableLocation >= 0);
     FreeMemory(TextureLookupTable);
     
-    s32 CharactersPerLine = WINDOW_WIDTH / (Scale.x*2);
+    s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0) > 0 && Is_Running) {
         TranslateMessage(&msg);
@@ -212,7 +205,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);
                 ScaleMatrix.SetRow(2, 0, 0, Scale.z, 0);
                 ScaleMatrix.SetRow(3, 0, 0, 0,       1);
-                CharactersPerLine = Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
+                CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
                 Scale.Print();
             }
             else if (GetKeyState(VK_SUBTRACT) & 0x8000) {
@@ -222,7 +215,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);
                 ScaleMatrix.SetRow(2, 0, 0, Scale.z, 0);
                 ScaleMatrix.SetRow(3, 0, 0, 0,       1);
-                CharactersPerLine = Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
+                CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
                 Scale.Print();
             }
 

@@ -220,7 +220,7 @@ CreateFontTexture() {
     for(u32 v = 0; v < TextureHeight; ++v) {
         for(u32 u = 0; u < TextureWidth; ++u) {
             u32 Color = *BitmapPixels++;
-            *PixelPtr = ((u32*)&Color)[0];
+            *PixelPtr = (u8)((u32*)&Color)[0];
             ++PixelPtr;
         }
     }

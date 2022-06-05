@@ -549,13 +549,13 @@ static inline v3
 Refract(v3 uv, v3 n, float etai_over_etat) {
     float cos_theta = Min(Dot(uv * -1, n), 1.0);
     v3 r_out_perp =  etai_over_etat * (uv + cos_theta*n);
-    v3 r_out_parallel = -sqrt(Abs(1.0 - r_out_perp.SqrLength())) * n;
+    v3 r_out_parallel = -Sqrt(Abs(1.0f - r_out_perp.SqrLength())) * n;
     return r_out_perp + r_out_parallel;
 }
 
 static inline float
 DegToRad(float deg) {
-    return deg * (PI/180.0f);
+    return deg * (float)(PI/180.0f);
 }
 
 static inline float
