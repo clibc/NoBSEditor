@@ -26,3 +26,11 @@ typedef double f64;
         DWORD Size = sprintf(temp, __VA_ARGS__);                        \
         WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), temp, Size, NULL, NULL); \
     }                                               
+
+#define WarnIfNot(a)                                          \
+    {                                                         \
+        if(!(a)) {                                            \
+            DebugLog(#a);                                     \
+            DebugLog(" is false\n");                          \
+        }                                                     \
+    }                                                         \

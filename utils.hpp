@@ -204,8 +204,6 @@ CreateFontTexture() {
     u32 PitchY = 0;
     for(s32 i = 33; i < 127; ++i) {
         wchar_t Character = (wchar_t)i;
-        SIZE CharSize;
-        GetTextExtentPoint32A(DeviceContext, (LPCSTR)&Character, 1, &CharSize);
         TextOutW(DeviceContext, PitchX, PitchY, &Character, 1);
 
         if((i-32) % CharacterPerLine == 0) {
