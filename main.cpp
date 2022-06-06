@@ -8,9 +8,9 @@
 #include <vector>
 
 #include "defines.h"
+#include "math.hpp"
 #include "opengl.hpp"
 #include "utils.hpp"
-#include "math.hpp"
 
 #define WINDOW_WIDTH  800
 #define WINDOW_HEIGHT 600
@@ -21,11 +21,6 @@ HDC Device_Context;
 #define MAX_CHARACTER_BUFFER 1000
 static char Text[MAX_CHARACTER_BUFFER] = {};
 static s32  CursorPos = 0;
-
-struct Vertex {
-    v3 Position;
-    s32 CharacterIndex;
-};
 
 static v2*
 CreateFontLookupTable(const CreateFontTextureResult& FontData) {
@@ -116,28 +111,10 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OrthoMatrix.SetRow(2, 0, 0, -2.0f/(Far - Near), 0);
     OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
 
-    v3 Position = v3(0, 0, 0);
-    m4 TranslationMatrix;
-    TranslationMatrix.SetRow(0, 1, 0, 0, 0);
-    TranslationMatrix.SetRow(1, 0, 1, 0, 0);
-    TranslationMatrix.SetRow(2, 0, 0, 1, 0);
-    TranslationMatrix.SetRow(3, Position.x, Position.y, Position.z, 1);
-
     f32 CharAspectRatio = 16.0f/30.0f;
     v3 Scale = v3(15, 30, 1);
     Scale.y = Scale.x / CharAspectRatio;
-    m4 ScaleMatrix;
-    ScaleMatrix.SetRow(0, Scale.x, 0, 0, 0);
-    ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);
-    ScaleMatrix.SetRow(2, 0, 0, Scale.z, 0);
-    ScaleMatrix.SetRow(3, 0, 0, 0,       1);
 
-    m4 ModelMatrix = ScaleMatrix * TranslationMatrix;
-
-    u32 BatchSize = sizeof(Vertex) * 6 * MAX_CHARACTER_BUFFER;
-    Vertex* BatchMemory = (Vertex*)AllocateMemory(BatchSize);
-    u32 BatchCurrentIndex = 0;
-    
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -159,6 +136,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     WarnIfNot(OrthoMatrixLocation >= 0);
     WarnIfNot(TextureLookupTableLocation >= 0);
     FreeMemory(TextureLookupTable);
+
+    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, vbo};
     
     s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
     MSG msg;
@@ -169,28 +148,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClearColor(1,0,1,0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        for(u32 i = 0; i < MAX_CHARACTER_BUFFER; ++i) {
-            if(Text[i] == 0) break;
-
-            // Space
-            if(Text[i] == 32) continue;
-
-            Position = v3((i%CharactersPerLine) * Scale.x*2 + Scale.x, WINDOW_HEIGHT - Scale.y - (i/CharactersPerLine) * Scale.y*2, 0);
-            TranslationMatrix.SetRow(3, Position.x, Position.y, Position.z, 1);
-            ModelMatrix = ScaleMatrix * TranslationMatrix;
-
-            for(s32 j = 0; j < 18; j+=3) {
-                Vertex V;
-                v4 Pos = ModelMatrix * v4(Vertices[j], Vertices[j+1], 0.0, 1);
-                V.Position = v3(Pos.x, Pos.y ,Pos.z);
-                V.CharacterIndex = (Text[i] - 33) * 4 + (s32)Vertices[j+2];
-                BatchMemory[BatchCurrentIndex++] = V;
-            }
-        }
-
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(Vertex), BatchMemory, GL_STATIC_DRAW);
-        glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
+        TextBoxDraw(Box, Text, CursorPos);
         
         if (GetKeyState(VK_ESCAPE) & 0x8000) {
             Is_Running = false;
@@ -201,28 +159,17 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (GetKeyState(VK_ADD) & 0x8000) {
                 Scale.x = Scale.x + ScaleAmount;
                 Scale.y = Scale.x / CharAspectRatio;
-                ScaleMatrix.SetRow(0, Scale.x, 0, 0, 0);
-                ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);
-                ScaleMatrix.SetRow(2, 0, 0, Scale.z, 0);
-                ScaleMatrix.SetRow(3, 0, 0, 0,       1);
                 CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
-                Scale.Print();
             }
             else if (GetKeyState(VK_SUBTRACT) & 0x8000) {
                 Scale.x = Scale.x - ScaleAmount;
                 Scale.y = Scale.x / CharAspectRatio;
-                ScaleMatrix.SetRow(0, Scale.x, 0, 0, 0);
-                ScaleMatrix.SetRow(1, 0, Scale.y, 0, 0);
-                ScaleMatrix.SetRow(2, 0, 0, Scale.z, 0);
-                ScaleMatrix.SetRow(3, 0, 0, 0,       1);
                 CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
-                Scale.Print();
             }
 
         }
         
         SwapBuffers(Device_Context);
-        BatchCurrentIndex = 0;
     }
     
     return 0;

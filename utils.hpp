@@ -247,3 +247,71 @@ CreateFontTexture() {
     DeleteObject(Font);
     return Result;
 }
+
+struct Vertex {
+    v3 Position;
+    s32 CharacterIndex;
+};
+
+struct TextBox {
+    f32 BoxWidth;
+    f32 BoxHeight;
+    f32 CharacterWidth;
+    f32 CharacterHeight;
+    u32 VBO;
+};
+
+static void
+TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize) {
+    static Vertex* BatchMemory = NULL;
+    u32 BatchCurrentIndex = 0;
+    
+    if(BatchMemory == NULL) {
+        BatchMemory = (Vertex*)AllocateMemory(1000 * sizeof(Vertex));
+    }
+
+    u32 CharactersPerLine = (u32)(Box.BoxWidth / Box.CharacterWidth);
+    for(u32 i = 0; i < TextSize; ++i) {
+        if(Text[i] == 0) break;
+
+        // Space
+        if(Text[i] == 32) continue;
+
+        f32 CharWidth  = Box.CharacterWidth;
+        f32 CharHeight = Box.CharacterHeight;
+            
+        v3 TopLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
+        v3 TopRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
+        v3 BotLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
+        v3 BotRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
+
+        Vertex V;
+        V.Position = TopRight;
+        V.CharacterIndex = (Text[i] - 33) * 4 + 1;
+        BatchMemory[BatchCurrentIndex++] = V;
+
+        V.Position = BotLeft;
+        V.CharacterIndex = (Text[i] - 33) * 4 + 2;
+        BatchMemory[BatchCurrentIndex++] = V;
+
+        V.Position = BotRight;
+        V.CharacterIndex = (Text[i] - 33) * 4 + 3;
+        BatchMemory[BatchCurrentIndex++] = V;
+
+        V.Position = TopRight;
+        V.CharacterIndex = (Text[i] - 33) * 4 + 1;
+        BatchMemory[BatchCurrentIndex++] = V;
+
+        V.Position = TopLeft;
+        V.CharacterIndex = (Text[i] - 33) * 4 + 0;
+        BatchMemory[BatchCurrentIndex++] = V;
+
+        V.Position = BotLeft;
+        V.CharacterIndex = (Text[i] - 33) * 4 + 2;
+        BatchMemory[BatchCurrentIndex++] = V;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, Box.VBO);
+    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(Vertex), BatchMemory, GL_STATIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
+}
