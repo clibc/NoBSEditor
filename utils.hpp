@@ -308,10 +308,7 @@ struct TextBox {
 
 static void
 TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize) {
-    if(Box.Arena == NULL) {
-        DebugLog("TextBoxDraw Error : Arena is not assigned!\n");
-        return;
-    }
+    Assert(Box.Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
     
     FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Box.Arena, TextSize * sizeof(Vertex));
 
