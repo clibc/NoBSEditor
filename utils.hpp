@@ -1,6 +1,7 @@
 #pragma once
 
 #define Assert(x) assert(x)
+#define Megabytes(x) (x*1024*1024)
 
 struct ReadEntireFileResult {
     char* content;
@@ -14,7 +15,7 @@ ReadEntireFile() {
 }
 
 static void*
-AllocateMemory(u32 Size) {
+AllocateMemory(u64 Size) {
     return VirtualAlloc(NULL, Size,
                         MEM_COMMIT|MEM_RESERVE,
                         PAGE_READWRITE);    
@@ -27,6 +28,49 @@ FreeMemory(void* Memory) {
         DebugLog("FreeMemory failed with error code: %i", GetLastError());
     }
     assert(Result);
+}
+
+struct FrameArena {
+    void* BasePointer;
+    u64 PushOffset;
+    u64 MaxSize;
+};
+
+struct FrameArenaMemory {
+    void* Memory;
+    u64 Size;
+};
+
+static FrameArena
+FrameArenaCreate(u64 Size) {
+    FrameArena Arena;
+    Arena.MaxSize = Size;
+    Arena.PushOffset = 0;
+    Arena.BasePointer = AllocateMemory(Arena.MaxSize);
+    return Arena;
+}
+
+static FrameArenaMemory
+FrameArenaAllocateMemory(FrameArena& Arena, u64 Size) {
+    Arena.PushOffset += Size;
+
+    FrameArenaMemory Memory;
+    Memory.Size = Size;
+    Memory.Memory = (char*)Arena.BasePointer + Arena.PushOffset;
+    return Memory;
+}
+
+static void
+FrameArenaReset(FrameArena& Arena) {
+    Arena.PushOffset = 0;
+}
+
+static void
+FrameArenaDelete(FrameArena& Arena) {
+    FreeMemory(Arena.BasePointer);
+    Arena.BasePointer = NULL;
+    Arena.MaxSize = 0;
+    Arena.PushOffset = 0;
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -259,16 +303,20 @@ struct TextBox {
     f32 CharacterWidth;
     f32 CharacterHeight;
     u32 VBO;
+    FrameArena* Arena;
 };
 
 static void
 TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize) {
-    static Vertex* BatchMemory = NULL;
-    u32 BatchCurrentIndex = 0;
-    
-    if(BatchMemory == NULL) {
-        BatchMemory = (Vertex*)AllocateMemory(1000 * sizeof(Vertex));
+    if(Box.Arena == NULL) {
+        DebugLog("TextBoxDraw Error : Arena is not assigned!\n");
+        return;
     }
+    
+    FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Box.Arena, TextSize * sizeof(Vertex));
+
+    Vertex* BatchMemory = (Vertex*)ArenaMemory.Memory;
+    u32 BatchCurrentIndex = 0;
 
     u32 CharactersPerLine = (u32)(Box.BoxWidth / Box.CharacterWidth);
     for(u32 i = 0; i < TextSize; ++i) {

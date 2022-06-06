@@ -137,7 +137,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     WarnIfNot(TextureLookupTableLocation >= 0);
     FreeMemory(TextureLookupTable);
 
-    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, vbo};
+    FrameArena Arena = FrameArenaCreate(Megabytes(2));
+    
+    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, vbo, &Arena};
     
     s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
     MSG msg;
@@ -166,11 +168,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 Scale.y = Scale.x / CharAspectRatio;
                 CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
             }
-
         }
         
         SwapBuffers(Device_Context);
+        FrameArenaReset(Arena);
     }
-    
+
+    FrameArenaDelete(Arena);
     return 0;
 }
