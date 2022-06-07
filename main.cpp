@@ -88,15 +88,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     CreateFontTextureResult TextureData = CreateFontTexture();
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
     
-    f32 Vertices[] = { // Last coordinate is index
-        1.0, 1.0, 1.0,   // Top Right 1
-        -1.0, -1.0, 2.0, // Bot left  2
-        1.0, -1.0, 3.0,  // Bot Right 3
-        1.0, 1.0, 1.0,   // Top Right 1
-        -1.0, 1.0, 0.0,  // Top Left  0
-        -1.0, -1.0, 2.0  // Bot left  2
-    };
-        
     // Define orthographic projection
     f32 Left  = 0;
     f32 Right = WINDOW_WIDTH;
@@ -150,6 +141,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClearColor(1,0,1,0);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        Box.BoxHeight = WINDOW_HEIGHT;
+        TextBoxDraw(Box, Text, CursorPos);
+        Box.BoxHeight  /= 2;
         TextBoxDraw(Box, Text, CursorPos);
         
         if (GetKeyState(VK_ESCAPE) & 0x8000) {
