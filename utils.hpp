@@ -294,6 +294,7 @@ CreateFontTexture() {
 
 struct Vertex {
     v3 Position;
+    v3 Color;
     s32 CharacterIndex;
 };
 
@@ -331,6 +332,8 @@ TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize) {
         v3 BotRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
 
         Vertex V;
+        V.Color = v3(1, 0, 0);
+        
         V.Position = TopRight;
         V.CharacterIndex = (Text[i] - 33) * 4 + 1;
         BatchMemory[BatchCurrentIndex++] = V;

@@ -116,10 +116,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     glUseProgram(shader_program);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    glVertexAttribIPointer(1, 1, GL_INT, sizeof(Vertex), (void*)sizeof(v3));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(v3));
+    glVertexAttribIPointer(2, 1, GL_INT, sizeof(Vertex), (void*)(sizeof(v3)*2));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
-    
+    glEnableVertexAttribArray(2);
+
     s32 OrthoMatrixLocation = glGetUniformLocation(shader_program, "OrthoMatrix");
     s32 TextureLookupTableLocation = glGetUniformLocation(shader_program, "TextureLookupTable");
     glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
@@ -138,7 +140,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
-        glClearColor(1,0,1,0);
+        glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         Box.BoxHeight = WINDOW_HEIGHT;
@@ -162,6 +164,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 Scale.y = Scale.x / CharAspectRatio;
                 CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
             }
+            Box.CharacterWidth = Scale.x*2;
+            Box.CharacterHeight = Scale.y*2;
         }
         
         SwapBuffers(Device_Context);
