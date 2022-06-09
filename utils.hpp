@@ -32,8 +32,8 @@ FreeMemory(void* Memory) {
 
 struct FrameArena {
     void* BasePointer;
-    u64 PushOffset;
     u64 MaxSize;
+    u64 PushOffset;
 };
 
 struct FrameArenaMemory {
@@ -52,6 +52,7 @@ FrameArenaCreate(u64 Size) {
 
 static FrameArenaMemory
 FrameArenaAllocateMemory(FrameArena& Arena, u64 Size) {
+    Assert(Arena.PushOffset < Arena.MaxSize);
     Arena.PushOffset += Size;
 
     FrameArenaMemory Memory;
@@ -298,18 +299,23 @@ struct Vertex {
     s32 CharacterIndex;
 };
 
+struct CursorVertex {
+    v3 Position;
+    v3 Color;
+};
+
 struct TextBox {
     f32 BoxWidth;
     f32 BoxHeight;
     f32 CharacterWidth;
     f32 CharacterHeight;
-    u32 VBO;
     FrameArena* Arena;
 };
 
-static void
-TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize) {
+static inline void
+TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize, u32 VAO, u32 VBO, u32 Shader) {
     Assert(Box.Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
+    if(TextSize == 0) return;
     
     FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Box.Arena, TextSize * sizeof(Vertex));
 
@@ -358,8 +364,52 @@ TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize) {
         V.CharacterIndex = (Text[i] - 33) * 4 + 2;
         BatchMemory[BatchCurrentIndex++] = V;
     }
-
-    glBindBuffer(GL_ARRAY_BUFFER, Box.VBO);
+    
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glUseProgram(Shader);
     glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(Vertex), BatchMemory, GL_STATIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
+}
+
+static inline void
+CursorDraw(TextBox& Box, u32 Position, u32 VAO, u32 VBO, u32 Shader) {
+    Assert(Box.Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
+    FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Box.Arena, 6 * sizeof(CursorVertex));
+
+    CursorVertex* BatchMemory = (CursorVertex*)ArenaMemory.Memory;
+    u32 BatchCurrentIndex = 0;
+
+    u32 CharactersPerLine = (u32)(Box.BoxWidth / Box.CharacterWidth);
+
+    f32 CharWidth  = Box.CharacterWidth;
+    f32 CharHeight = Box.CharacterHeight;
+
+    s32 i = Position;
+    
+    v3 TopLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
+    v3 TopRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
+    v3 BotLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
+    v3 BotRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
+    CursorVertex V;
+    V.Color = v3(1, 1, 0);
+        
+    V.Position = TopRight;
+    BatchMemory[BatchCurrentIndex++] = V;
+    V.Position = BotLeft;
+    BatchMemory[BatchCurrentIndex++] = V;
+    V.Position = BotRight;
+    BatchMemory[BatchCurrentIndex++] = V;
+    V.Position = TopRight;
+    BatchMemory[BatchCurrentIndex++] = V;
+    V.Position = TopLeft;
+    BatchMemory[BatchCurrentIndex++] = V;
+    V.Position = BotLeft;
+    BatchMemory[BatchCurrentIndex++] = V;
+
+    glUseProgram(Shader);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(CursorVertex), BatchMemory, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
 }

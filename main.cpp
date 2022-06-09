@@ -19,7 +19,7 @@ static bool Is_Running = true;
 HDC Device_Context;
 
 #define MAX_CHARACTER_BUFFER 1000
-static char Text[MAX_CHARACTER_BUFFER] = {};
+static char Text[MAX_CHARACTER_BUFFER];
 static s32  CursorPos = 0;
 
 static v2*
@@ -106,15 +106,14 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     v3 Scale = v3(15, 30, 1);
     Scale.y = Scale.x / CharAspectRatio;
 
-    GLuint vao, vbo;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    GLuint TextShader   = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
+    GLuint CursorShader = LoadShaderFromFiles("../shaders/cursor_vertex.shader", "../shaders/cursor_frag.shader");
 
-    GLuint shader_program = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
-    glUseProgram(shader_program);
-
+    GLuint VAO, VBO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(v3));
     glVertexAttribIPointer(2, 1, GL_INT, sizeof(Vertex), (void*)(sizeof(v3)*2));
@@ -122,17 +121,34 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    s32 OrthoMatrixLocation = glGetUniformLocation(shader_program, "OrthoMatrix");
-    s32 TextureLookupTableLocation = glGetUniformLocation(shader_program, "TextureLookupTable");
+    u32 CursorVAO, CursorVBO;
+    glGenVertexArrays(1, &CursorVAO);
+    glBindVertexArray(CursorVAO);
+    glGenBuffers(1, &CursorVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, CursorVBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), (void*)sizeof(v3));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    
+    glUseProgram(TextShader);
+    s32 OrthoMatrixLocation = glGetUniformLocation(TextShader, "OrthoMatrix");
+    s32 OrthoMatrixLocationCursor = glGetUniformLocation(CursorShader, "OrthoMatrix");
+    s32 TextureLookupTableLocation = glGetUniformLocation(TextShader, "TextureLookupTable");
     glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
     glUniform2fv(TextureLookupTableLocation, 94 * 4, (f32*)TextureLookupTable);
+
+    glUseProgram(CursorShader);
+    glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
+
     WarnIfNot(OrthoMatrixLocation >= 0);
+    WarnIfNot(OrthoMatrixLocationCursor >= 0);
     WarnIfNot(TextureLookupTableLocation >= 0);
     FreeMemory(TextureLookupTable);
 
     FrameArena Arena = FrameArenaCreate(Megabytes(2));
     
-    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, vbo, &Arena};
+    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, &Arena};
     
     s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
     MSG msg;
@@ -142,11 +158,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
-        Box.BoxHeight = WINDOW_HEIGHT;
-        TextBoxDraw(Box, Text, CursorPos);
-        Box.BoxHeight  /= 2;
-        TextBoxDraw(Box, Text, CursorPos);
+        
+        TextBoxDraw(Box, Text, CursorPos, VAO, VBO, TextShader);
+        CursorDraw(Box, CursorPos, CursorVAO, CursorVBO, CursorShader);
         
         if (GetKeyState(VK_ESCAPE) & 0x8000) {
             Is_Running = false;

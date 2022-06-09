@@ -5,5 +5,5 @@ pushd _build
       REM Oi: use compiler intrinsics
       REM /EHa-: exeption handling stuff
       REM /GR- : disable runtime type information
-      cl /Od /Oi /GR- /EHa- /D_CRT_SECURE_NO_WARNINGS /FC /nologo /EHsc /Zi /W4 /WX /wd4100 /wd4505 ..\main.cpp /link user32.lib OpenGL32.lib Gdi32.lib && main.exe
+      cl /Od /Oi /GR- /EHa- /D_CRT_SECURE_NO_WARNINGS /FC /nologo /EHsc /Zi /W4 /WX /wd4100 /wd4505 ..\main.cpp /link user32.lib OpenGL32.lib Gdi32.lib
 popd

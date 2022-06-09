@@ -183,3 +183,12 @@ InitializeOpenGL(HWND hwnd) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
+
+static inline void 
+OpenGLGetError() {
+    GLenum err;
+
+    while((err = glGetError()) != GL_NO_ERROR) {
+        DebugLog("OpenGL error code : %x\n", err);
+    }
+}
