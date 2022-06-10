@@ -81,17 +81,16 @@ CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height) {
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
-    wc.lpszClassName = "fasted_window_class";
+    wc.lpszClassName = "nobsed_window_class";
     assert(RegisterClass(&wc));
     HWND window_handle = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW,
                                         wc.lpszClassName,
-                                        "fasted",
-                                        WS_OVERLAPPEDWINDOW,
+                                        "NoBSEditor",
+                                        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                                         CW_USEDEFAULT,CW_USEDEFAULT,
                                         width, height,
                                         NULL,NULL,hInstance,NULL);
     assert(window_handle);
-    ShowWindow(window_handle, nCmdShow);
     return window_handle;
 }
 
@@ -309,73 +308,105 @@ struct TextBox {
     f32 BoxHeight;
     f32 CharacterWidth;
     f32 CharacterHeight;
-    FrameArena* Arena;
 };
 
+struct TextBoxRenderState {
+    TextBox* Box;
+    FrameArenaMemory ArenaMemory;
+    u32 BatchCount;
+    u32 VAO;
+    u32 VBO;
+    u32 Shader;
+    u32 CursorPosition;
+};
+
+static inline TextBoxRenderState
+TextBoxBeginDraw(TextBox& Box, FrameArena* Arena, u32 VAO, u32 VBO, u32 Shader) {
+    Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
+    Assert(VAO >= 0);
+    Assert(VBO >= 0);
+    Assert(Shader >= 0);
+
+    TextBoxRenderState S;
+    S.Box = &Box;
+    S.VAO = VAO;
+    S.VBO = VBO;
+    S.Shader = Shader;
+    S.CursorPosition = 0;
+    S.BatchCount = 0;
+    S.ArenaMemory = FrameArenaAllocateMemory(*Arena, 1200 * sizeof(Vertex));
+
+    return S;
+}
+
 static inline void
-TextBoxDraw(const TextBox& Box, char* Text, u32 TextSize, u32 VAO, u32 VBO, u32 Shader) {
-    Assert(Box.Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
-    if(TextSize == 0) return;
+TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1)) {
+    Vertex* BatchMemory = (Vertex*)State.ArenaMemory.Memory;
+    TextBox& Box = *State.Box;
     
-    FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Box.Arena, TextSize * sizeof(Vertex));
-
-    Vertex* BatchMemory = (Vertex*)ArenaMemory.Memory;
-    u32 BatchCurrentIndex = 0;
-
     u32 CharactersPerLine = (u32)(Box.BoxWidth / Box.CharacterWidth);
+
     for(u32 i = 0; i < TextSize; ++i) {
         if(Text[i] == 0) break;
 
         // Space
-        if(Text[i] == 32) continue;
+        if(Text[i] == 32) {
+            State.CursorPosition++;
+            continue;
+        }
 
         f32 CharWidth  = Box.CharacterWidth;
         f32 CharHeight = Box.CharacterHeight;
-            
-        v3 TopLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
-        v3 TopRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
-        v3 BotLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
-        v3 BotRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
+
+        v3 TopLeft  = v3((State.CursorPosition%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
+        v3 TopRight = v3((State.CursorPosition%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
+        v3 BotLeft  = v3((State.CursorPosition%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
+        v3 BotRight = v3((State.CursorPosition%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
 
         Vertex V;
-        V.Color = v3(1, 0, 0);
+        V.Color = TextColor;
         
         V.Position = TopRight;
         V.CharacterIndex = (Text[i] - 33) * 4 + 1;
-        BatchMemory[BatchCurrentIndex++] = V;
+        BatchMemory[State.BatchCount++] = V;
 
         V.Position = BotLeft;
         V.CharacterIndex = (Text[i] - 33) * 4 + 2;
-        BatchMemory[BatchCurrentIndex++] = V;
+        BatchMemory[State.BatchCount++] = V;
 
         V.Position = BotRight;
         V.CharacterIndex = (Text[i] - 33) * 4 + 3;
-        BatchMemory[BatchCurrentIndex++] = V;
+        BatchMemory[State.BatchCount++] = V;
 
         V.Position = TopRight;
         V.CharacterIndex = (Text[i] - 33) * 4 + 1;
-        BatchMemory[BatchCurrentIndex++] = V;
+        BatchMemory[State.BatchCount++] = V;
 
         V.Position = TopLeft;
         V.CharacterIndex = (Text[i] - 33) * 4 + 0;
-        BatchMemory[BatchCurrentIndex++] = V;
+        BatchMemory[State.BatchCount++] = V;
 
         V.Position = BotLeft;
         V.CharacterIndex = (Text[i] - 33) * 4 + 2;
-        BatchMemory[BatchCurrentIndex++] = V;
+        BatchMemory[State.BatchCount++] = V;
+
+        State.CursorPosition++;
     }
-    
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glUseProgram(Shader);
-    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(Vertex), BatchMemory, GL_STATIC_DRAW);
-    glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
 }
 
 static inline void
-CursorDraw(TextBox& Box, u32 Position, u32 VAO, u32 VBO, u32 Shader) {
-    Assert(Box.Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
-    FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Box.Arena, 6 * sizeof(CursorVertex));
+TextBoxEndDraw(TextBoxRenderState& State) {
+    glBindVertexArray(State.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, State.VBO);
+    glUseProgram(State.Shader);
+    glBufferData(GL_ARRAY_BUFFER, State.BatchCount * sizeof(Vertex), State.ArenaMemory.Memory, GL_STATIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, State.BatchCount);
+}
+
+static inline void
+CursorDraw(TextBox& Box, FrameArena* Arena, u32 Position, u32 VAO, u32 VBO, u32 Shader) {
+    Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
+    FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
 
     CursorVertex* BatchMemory = (CursorVertex*)ArenaMemory.Memory;
     u32 BatchCurrentIndex = 0;

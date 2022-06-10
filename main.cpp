@@ -148,7 +148,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     FrameArena Arena = FrameArenaCreate(Megabytes(2));
     
-    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, &Arena};
+    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
     s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
     MSG msg;
@@ -159,8 +159,15 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        TextBoxDraw(Box, Text, CursorPos, VAO, VBO, TextShader);
-        CursorDraw(Box, CursorPos, CursorVAO, CursorVBO, CursorShader);
+
+        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, VAO, VBO, TextShader);
+        TextBoxPushText(RenderState, Text, CursorPos, v3(1,0,0));
+        TextBoxPushText(RenderState, " Test text", 10);
+        TextBoxPushText(RenderState, " Rendering", 10, v3(0,1,0));
+        TextBoxEndDraw(RenderState);
+
+        CursorDraw(Box, &Arena, CursorPos, CursorVAO, CursorVBO, CursorShader);
+
         
         if (GetKeyState(VK_ESCAPE) & 0x8000) {
             Is_Running = false;
