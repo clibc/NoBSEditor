@@ -68,7 +68,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         Is_Running = false;
     } break;
     case WM_CHAR:
-        DebugLog("WM_SYSKEYDOWN: %c\n", (char)wParam);
+        DebugLog("WM_SYSKEYDOWN: %c ", (char)wParam);
+        DebugLog("%i\n", (char)wParam);
         Text[CursorPos++] = (char)wParam;
         break;
     default:
@@ -103,7 +104,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
 
     f32 CharAspectRatio = 16.0f/30.0f;
-    v3 Scale = v3(15, 30, 1);
+    v3 Scale = v3(30, 30, 1);
     Scale.y = Scale.x / CharAspectRatio;
 
     GLuint TextShader   = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
@@ -151,6 +152,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
     s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
+
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0) > 0 && Is_Running) {
         TranslateMessage(&msg);
@@ -158,16 +160,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        
+        CursorDraw(Box, &Arena, CursorPos, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, VAO, VBO, TextShader);
         TextBoxPushText(RenderState, Text, CursorPos, v3(1,0,0));
-        TextBoxPushText(RenderState, " Test text", 10);
-        TextBoxPushText(RenderState, " Rendering", 10, v3(0,1,0));
+
         TextBoxEndDraw(RenderState);
-
-        CursorDraw(Box, &Arena, CursorPos, CursorVAO, CursorVBO, CursorShader);
-
         
         if (GetKeyState(VK_ESCAPE) & 0x8000) {
             Is_Running = false;

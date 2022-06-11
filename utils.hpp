@@ -304,11 +304,23 @@ struct CursorVertex {
 };
 
 struct TextBox {
-    f32 BoxWidth;
-    f32 BoxHeight;
+    f32 Width;
+    f32 Height;
     f32 CharacterWidth;
     f32 CharacterHeight;
 };
+
+#define CharTopLeft  v2(0,0)
+#define CharTopRight v2(1,0)
+#define CharBotLeft  v2(0,1)
+#define CharBotRight v2(1,1)
+
+static inline v3
+TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner) {
+    return v3(Box.CharacterWidth * CursorPosition.x + Box.CharacterWidth * Corner.x,
+              Box.Height - (Box.CharacterHeight * CursorPosition.y + Box.CharacterHeight * Corner.y),
+              0);
+}
 
 struct TextBoxRenderState {
     TextBox* Box;
@@ -344,7 +356,7 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
     Vertex* BatchMemory = (Vertex*)State.ArenaMemory.Memory;
     TextBox& Box = *State.Box;
     
-    u32 CharactersPerLine = (u32)(Box.BoxWidth / Box.CharacterWidth);
+    u32 CharactersPerLine = (u32)(Box.Width / Box.CharacterWidth);
 
     for(u32 i = 0; i < TextSize; ++i) {
         if(Text[i] == 0) break;
@@ -354,39 +366,37 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
             State.CursorPosition++;
             continue;
         }
+        else if(Text[i] == '\n' || Text[i] == '\r') {
+            State.CursorPosition = (State.CursorPosition / CharactersPerLine + 1) * CharactersPerLine;
+            continue;
+        }
 
-        f32 CharWidth  = Box.CharacterWidth;
-        f32 CharHeight = Box.CharacterHeight;
-
-        v3 TopLeft  = v3((State.CursorPosition%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
-        v3 TopRight = v3((State.CursorPosition%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
-        v3 BotLeft  = v3((State.CursorPosition%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
-        v3 BotRight = v3((State.CursorPosition%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight - CharHeight * (State.CursorPosition/CharactersPerLine), 0);
+        v2 CursorPosition = v2((f32)(State.CursorPosition%CharactersPerLine), (f32)(State.CursorPosition/CharactersPerLine));
 
         Vertex V;
         V.Color = TextColor;
         
-        V.Position = TopRight;
+        V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
         V.CharacterIndex = (Text[i] - 33) * 4 + 1;
         BatchMemory[State.BatchCount++] = V;
 
-        V.Position = BotLeft;
+        V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotLeft);
         V.CharacterIndex = (Text[i] - 33) * 4 + 2;
         BatchMemory[State.BatchCount++] = V;
 
-        V.Position = BotRight;
+        V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotRight);
         V.CharacterIndex = (Text[i] - 33) * 4 + 3;
         BatchMemory[State.BatchCount++] = V;
 
-        V.Position = TopRight;
+        V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
         V.CharacterIndex = (Text[i] - 33) * 4 + 1;
         BatchMemory[State.BatchCount++] = V;
 
-        V.Position = TopLeft;
+        V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopLeft);
         V.CharacterIndex = (Text[i] - 33) * 4 + 0;
         BatchMemory[State.BatchCount++] = V;
 
-        V.Position = BotLeft;
+        V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotLeft);
         V.CharacterIndex = (Text[i] - 33) * 4 + 2;
         BatchMemory[State.BatchCount++] = V;
 
@@ -411,31 +421,31 @@ CursorDraw(TextBox& Box, FrameArena* Arena, u32 Position, u32 VAO, u32 VBO, u32 
     CursorVertex* BatchMemory = (CursorVertex*)ArenaMemory.Memory;
     u32 BatchCurrentIndex = 0;
 
-    u32 CharactersPerLine = (u32)(Box.BoxWidth / Box.CharacterWidth);
-
-    f32 CharWidth  = Box.CharacterWidth;
-    f32 CharHeight = Box.CharacterHeight;
+    u32 CharactersPerLine = (u32)(Box.Width / Box.CharacterWidth);
 
     s32 i = Position;
     
-    v3 TopLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
-    v3 TopRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight * (i/CharactersPerLine), 0);
-    v3 BotLeft  = v3((i%CharactersPerLine) * CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
-    v3 BotRight = v3((i%CharactersPerLine) * CharWidth + CharWidth, Box.BoxHeight - CharHeight - CharHeight * (i/CharactersPerLine), 0);
+    v2 CursorPosition = v2((f32)(i%CharactersPerLine), (f32)(i/CharactersPerLine));
+
     CursorVertex V;
     V.Color = v3(1, 1, 0);
         
-    V.Position = TopRight;
+    V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
     BatchMemory[BatchCurrentIndex++] = V;
-    V.Position = BotLeft;
+
+    V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotLeft);
     BatchMemory[BatchCurrentIndex++] = V;
-    V.Position = BotRight;
+
+    V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotRight);
     BatchMemory[BatchCurrentIndex++] = V;
-    V.Position = TopRight;
+
+    V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
     BatchMemory[BatchCurrentIndex++] = V;
-    V.Position = TopLeft;
+
+    V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopLeft);
     BatchMemory[BatchCurrentIndex++] = V;
-    V.Position = BotLeft;
+
+    V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotLeft);
     BatchMemory[BatchCurrentIndex++] = V;
 
     glUseProgram(Shader);

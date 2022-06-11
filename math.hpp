@@ -475,6 +475,16 @@ Max(float a, float b) {
     return a > b ? a : b;
 }
 
+static inline int
+Max(int a, int b) {
+    return a > b ? a : b;
+}
+
+static inline int
+Min(int a, int b) {
+    return a < b ? a : b;
+}
+
 static inline float
 PowerF32(float x, float p) {
     return pow(x, p);
