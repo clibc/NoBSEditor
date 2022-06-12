@@ -160,12 +160,24 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        CursorDraw(Box, &Arena, CursorPos, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, VAO, VBO, TextShader);
         TextBoxPushText(RenderState, Text, CursorPos, v3(1,0,0));
-
         TextBoxEndDraw(RenderState);
+
+        v2 CursorPosition = {};
+        
+        for(s32 i = 0; i < CursorPos; ++i) {
+            if(Text[i] == '\n' || Text[i] == '\r') {
+                CursorPosition.y += 1;
+                CursorPosition.x = 0;
+            }
+            else {
+                CursorPosition.x += 1;
+            }
+        }
+        
+        CursorDraw(Box, &Arena, CursorPosition, CursorVAO, CursorVBO, CursorShader);
         
         if (GetKeyState(VK_ESCAPE) & 0x8000) {
             Is_Running = false;

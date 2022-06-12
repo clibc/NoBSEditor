@@ -1,6 +1,9 @@
 #pragma once
 
-#define Assert(x) assert(x)
+//#define Assert(x) assert(x)
+#define Assert(Expression)                      \
+if(!(Expression)) { *(int*)0 = 0; }
+
 #define Megabytes(x) (x*1024*1024)
 
 struct ReadEntireFileResult {
@@ -323,7 +326,7 @@ TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner) {
 }
 
 struct TextBoxRenderState {
-    TextBox* Box;
+    TextBox Box;
     FrameArenaMemory ArenaMemory;
     u32 BatchCount;
     u32 VAO;
@@ -333,14 +336,14 @@ struct TextBoxRenderState {
 };
 
 static inline TextBoxRenderState
-TextBoxBeginDraw(TextBox& Box, FrameArena* Arena, u32 VAO, u32 VBO, u32 Shader) {
+TextBoxBeginDraw(TextBox Box, FrameArena* Arena, u32 VAO, u32 VBO, u32 Shader) {
     Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
     Assert(VAO >= 0);
     Assert(VBO >= 0);
     Assert(Shader >= 0);
 
     TextBoxRenderState S;
-    S.Box = &Box;
+    S.Box = Box;
     S.VAO = VAO;
     S.VBO = VBO;
     S.Shader = Shader;
@@ -354,7 +357,7 @@ TextBoxBeginDraw(TextBox& Box, FrameArena* Arena, u32 VAO, u32 VBO, u32 Shader) 
 static inline void
 TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1)) {
     Vertex* BatchMemory = (Vertex*)State.ArenaMemory.Memory;
-    TextBox& Box = *State.Box;
+    TextBox Box = State.Box;
     
     u32 CharactersPerLine = (u32)(Box.Width / Box.CharacterWidth);
 
@@ -414,18 +417,12 @@ TextBoxEndDraw(TextBoxRenderState& State) {
 }
 
 static inline void
-CursorDraw(TextBox& Box, FrameArena* Arena, u32 Position, u32 VAO, u32 VBO, u32 Shader) {
+CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, u32 VAO, u32 VBO, u32 Shader) {
     Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
     FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
 
     CursorVertex* BatchMemory = (CursorVertex*)ArenaMemory.Memory;
     u32 BatchCurrentIndex = 0;
-
-    u32 CharactersPerLine = (u32)(Box.Width / Box.CharacterWidth);
-
-    s32 i = Position;
-    
-    v2 CursorPosition = v2((f32)(i%CharactersPerLine), (f32)(i/CharactersPerLine));
 
     CursorVertex V;
     V.Color = v3(1, 1, 0);
