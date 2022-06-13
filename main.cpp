@@ -60,17 +60,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
     } break;
     case WM_SIZE: {
-        const u32 width  = LOWORD(lParam);
-        const u32 height = HIWORD(lParam);
-        glViewport(0, 0, (GLint)width, (GLint)height);
+        const u32 Width  = LOWORD(lParam);
+        const u32 Height = HIWORD(lParam);
+        glViewport(0, 0, (GLint)Width, (GLint)Height);
     } break;
     case WM_DESTROY: {
         Is_Running = false;
     } break;
     case WM_CHAR:
-        DebugLog("WM_SYSKEYDOWN: %c ", (char)wParam);
-        DebugLog("%i\n", (char)wParam);
-        Text[CursorPos++] = (char)wParam;
         break;
     default:
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -153,34 +150,27 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
 
-    MSG msg;
-    while(GetMessage(&msg, NULL, 0, 0) > 0 && Is_Running) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-
-        glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, TextVAO, TextVBO, TextShader);
-        TextBoxPushText(RenderState, Text, CursorPos, v3(1,0,0));
-        TextBoxEndDraw(RenderState);
-
-        u32 Count = 0;
-        for(s32 i = 0; i < CursorPos; ++i) {
-            if(Text[i] == '\n' || Text[i] == '\r') {
-                Count = (Count / CharactersPerLine + 1) * CharactersPerLine;
+    MSG Msg;
+    u32 Count = 0;
+    while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) {
+        TranslateMessage(&Msg);
+        if(Msg.message == WM_KEYDOWN) {
+        }
+        else if(Msg.message == WM_CHAR) {
+            u8 Char = (u8)Msg.wParam;
+            if(Char >= 32 && Char <= 126) {
+                DebugLog("WM_SYSKEYDOWN: %c \n", Char);
+                Text[CursorPos++] = Char;
             }
-            else {
-                Count += 1;
+            else if (Char == '\n' || Char == '\r') {
+                DebugLog("Space or tab is down\n");
+                Text[CursorPos++] = Char;
             }
         }
-        v2 CursorPosition = v2((f32)(Count%CharactersPerLine), (f32)(Count/CharactersPerLine));
-        CursorDraw(Box, &Arena, CursorPosition, CursorVAO, CursorVBO, CursorShader);
+        else {
+            DispatchMessage(&Msg);
+        }
         
-        if (GetKeyState(VK_ESCAPE) & 0x8000) {
-            Is_Running = false;
-        }
-  
         if(GetKeyState(VK_CONTROL) & 0x8000) {
             f32 ScaleAmount = 1.5f;
             if (GetKeyState(VK_ADD) & 0x8000) {
@@ -196,7 +186,32 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             Box.CharacterWidth = Scale.x*2;
             Box.CharacterHeight = Scale.y*2;
         }
+
+        glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, TextVAO, TextVBO, TextShader);
+        TextBoxPushText(RenderState, Text, CursorPos, v3(1,0,0));
+        TextBoxEndDraw(RenderState);
+
+        Count = 0;
+        for(s32 i = 0; i < CursorPos; ++i) {
+            if(Text[i] == '\n' || Text[i] == '\r') {
+                Count = (Count / CharactersPerLine + 1) * CharactersPerLine;
+            }
+            else {
+                Count += 1;
+            }
+        }
+        v2 CursorPosition = v2((f32)(Count%CharactersPerLine), (f32)(Count/CharactersPerLine));
+        CursorDraw(Box, &Arena, CursorPosition, CursorVAO, CursorVBO, CursorShader);
         
+        if (GetKeyState(VK_ESCAPE) & 0x8000) {
+            Is_Running = false;
+        }
+  
+
+        glFlush();
         SwapBuffers(Device_Context);
         FrameArenaReset(Arena);
     }
