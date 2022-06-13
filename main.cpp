@@ -104,17 +104,17 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
 
     f32 CharAspectRatio = 16.0f/30.0f;
-    v3 Scale = v3(30, 30, 1);
+    v3 Scale = v3(12, 30, 1);
     Scale.y = Scale.x / CharAspectRatio;
 
     GLuint TextShader   = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
     GLuint CursorShader = LoadShaderFromFiles("../shaders/cursor_vertex.shader", "../shaders/cursor_frag.shader");
 
-    GLuint VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    GLuint TextVAO, TextVBO;
+    glGenVertexArrays(1, &TextVAO);
+    glBindVertexArray(TextVAO);
+    glGenBuffers(1, &TextVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, TextVBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(v3));
     glVertexAttribIPointer(2, 1, GL_INT, sizeof(Vertex), (void*)(sizeof(v3)*2));
@@ -161,28 +161,26 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, VAO, VBO, TextShader);
+        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, TextVAO, TextVBO, TextShader);
         TextBoxPushText(RenderState, Text, CursorPos, v3(1,0,0));
         TextBoxEndDraw(RenderState);
 
-        v2 CursorPosition = {};
-        
+        u32 Count = 0;
         for(s32 i = 0; i < CursorPos; ++i) {
             if(Text[i] == '\n' || Text[i] == '\r') {
-                CursorPosition.y += 1;
-                CursorPosition.x = 0;
+                Count = (Count / CharactersPerLine + 1) * CharactersPerLine;
             }
             else {
-                CursorPosition.x += 1;
+                Count += 1;
             }
         }
-        
+        v2 CursorPosition = v2((f32)(Count%CharactersPerLine), (f32)(Count/CharactersPerLine));
         CursorDraw(Box, &Arena, CursorPosition, CursorVAO, CursorVBO, CursorShader);
         
         if (GetKeyState(VK_ESCAPE) & 0x8000) {
             Is_Running = false;
         }
-        
+  
         if(GetKeyState(VK_CONTROL) & 0x8000) {
             f32 ScaleAmount = 1.5f;
             if (GetKeyState(VK_ADD) & 0x8000) {

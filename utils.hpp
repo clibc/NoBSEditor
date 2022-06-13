@@ -1,6 +1,5 @@
 #pragma once
 
-//#define Assert(x) assert(x)
 #define Assert(Expression)                      \
 if(!(Expression)) { *(int*)0 = 0; }
 
@@ -26,11 +25,13 @@ AllocateMemory(u64 Size) {
 
 static void
 FreeMemory(void* Memory) {
-    s32 Result = VirtualFree(Memory, 0, MEM_RELEASE);
-    if(!Result) {
-        DebugLog("FreeMemory failed with error code: %i", GetLastError());
+    if(Memory) {
+        s32 Result = VirtualFree(Memory, 0, MEM_RELEASE);
+        if(!Result) {
+            DebugLog("FreeMemory failed with error code: %i", GetLastError());
+        }
+        Assert(Result);
     }
-    assert(Result);
 }
 
 struct FrameArena {
