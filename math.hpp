@@ -502,6 +502,13 @@ Clamp(float x, float min, float max) {
     return x;
 }
 
+static inline int
+Clamp(int x, int min, int max) {
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
 static inline float
 Dot(v3 a, v3 b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;

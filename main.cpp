@@ -20,36 +20,17 @@ HDC Device_Context;
 
 #define MAX_CHARACTER_BUFFER 1000
 static char Text[MAX_CHARACTER_BUFFER];
-static s32  CursorPos = 0;
+static s32  TextSize = 0;
 
-static v2*
-CreateFontLookupTable(const CreateFontTextureResult& FontData) {
-    v2* TextureCoords = (v2*)AllocateMemory(sizeof(v2) * 94 * 4);
+static inline v2
+CursorScreenPositionToText(CalculateLinesResult* Lines, v2 CursorPosition) {
+    u32 LineIndex = TruncateF32ToS32(CursorPosition.y);
+    u32 CharacterIndex = TruncateF32ToS32(CursorPosition.x);
 
-    f32 CW = (f32)FontData.CharacterWidth / (f32)FontData.TextureWidth;
-    f32 CH = (f32)FontData.CharacterHeight / (f32)FontData.TextureHeight;
-
-    s32 ArrayIndex = 0;
-    for(s32 i = 33; i < 127; ++i) {
-        s32 Index = i-33;
-        f32 IndexX = (f32)(Index % FontData.CharacterPerLine);
-        f32 IndexY = (f32)(Index / FontData.CharacterPerLine);
-
-        // Top left
-        TextureCoords[ArrayIndex + 0].x = CW*IndexX;
-        TextureCoords[ArrayIndex + 0].y = 1.0f - CH * IndexY;
-        // Top Rigth
-        TextureCoords[ArrayIndex + 1].x = CW*IndexX + CW;
-        TextureCoords[ArrayIndex + 1].y = 1.0f - CH * IndexY;
-        // Bottom Left
-        TextureCoords[ArrayIndex + 2].x = CW*IndexX;
-        TextureCoords[ArrayIndex + 2].y = 1.0f - CH - CH * IndexY;
-        // Bottom Right
-        TextureCoords[ArrayIndex + 3].x = CW*IndexX + CW;
-        TextureCoords[ArrayIndex + 3].y = 1.0f - CH - CH * IndexY;
-        ArrayIndex += 4;
-    }
-    return TextureCoords;
+    LineIndex = Clamp(LineIndex, 0, Lines->LineCount - 1);
+    CharacterIndex = Clamp(CharacterIndex, 0, Lines->Lines[LineIndex].EndIndex - Lines->Lines[LineIndex].StartIndex);
+    
+    return v2((f32)CharacterIndex, (f32)LineIndex);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { 
@@ -148,69 +129,93 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
-    s32 CharactersPerLine = (s32)(WINDOW_WIDTH / (Scale.x*2));
+    char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f \nint main() {\n    return 0 \n}";
+    strcpy(Text, FillText);
+    TextSize += (u32)strlen(FillText);
 
+    CalculateLinesResult Lines = CalculateLines(Box, &Arena, Text, TextSize);
+    
     MSG Msg;
-    u32 Count = 0;
+
+    s32 CursorX = 0;
+    s32 CursorY = 0;
+
     while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) {
         TranslateMessage(&Msg);
         if(Msg.message == WM_KEYDOWN) {
+            if((Msg.lParam & (1 << 30)) == 0) {
+                // Key down
+            }
+            else {
+                // Key hold down
+            }
+
+            if(Msg.wParam == VK_ESCAPE)
+            {
+                Is_Running = false;
+            }
+
+            if(Msg.wParam == VK_UP)
+            {
+                CursorY = Clamp(CursorY - 1, 0, Lines.LineCount - 1);
+                CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+            }
+            else if (Msg.wParam == VK_DOWN)
+            {
+                CursorY = Clamp(CursorY + 1, 0, Lines.LineCount - 1);
+                CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+            }
+            else if (Msg.wParam == VK_LEFT)
+            {
+                CursorX -= 1;
+                if(CursorX < 0) { // go one up
+                    if(CursorY > 0) {
+                        CursorY -= 1;
+                        CursorX = Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex;
+                    }
+                    else { // first row
+                        CursorX = 0;
+                    }
+                }
+            }
+            else if (Msg.wParam == VK_RIGHT)
+            {
+                CursorX += 1;
+                if(CursorX > (s32)(Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex)) { 
+                    if(CursorY < (s32)Lines.LineCount - 1) { // go one down
+                        CursorX = 0;
+                        CursorY += 1;
+                    }
+                    else { // Last row last colomn
+                        CursorX -= 1;
+                    }
+                }
+            }
         }
         else if(Msg.message == WM_CHAR) {
             u8 Char = (u8)Msg.wParam;
             if(Char >= 32 && Char <= 126) {
-                DebugLog("WM_SYSKEYDOWN: %c \n", Char);
-                Text[CursorPos++] = Char;
+                Text[TextSize++] = Char;
             }
             else if (Char == '\n' || Char == '\r') {
-                DebugLog("Space or tab is down\n");
-                Text[CursorPos++] = Char;
+                Text[TextSize++] = Char;
             }
         }
         else {
             DispatchMessage(&Msg);
         }
-        
-        if(GetKeyState(VK_CONTROL) & 0x8000) {
-            f32 ScaleAmount = 1.5f;
-            if (GetKeyState(VK_ADD) & 0x8000) {
-                Scale.x = Scale.x + ScaleAmount;
-                Scale.y = Scale.x / CharAspectRatio;
-                CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
-            }
-            else if (GetKeyState(VK_SUBTRACT) & 0x8000) {
-                Scale.x = Scale.x - ScaleAmount;
-                Scale.y = Scale.x / CharAspectRatio;
-                CharactersPerLine = (s32)Clamp(WINDOW_WIDTH / (Scale.x*2), 1, FLT_MAX);
-            }
-            Box.CharacterWidth = Scale.x*2;
-            Box.CharacterHeight = Scale.y*2;
-        }
 
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, TextVAO, TextVBO, TextShader);
-        TextBoxPushText(RenderState, Text, CursorPos, v3(1,0,0));
+        Lines = CalculateLines(Box, &Arena, Text, TextSize);
+        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
+        TextBoxPushText(RenderState, Text, TextSize, v3(1,0,0));
         TextBoxEndDraw(RenderState);
 
-        Count = 0;
-        for(s32 i = 0; i < CursorPos; ++i) {
-            if(Text[i] == '\n' || Text[i] == '\r') {
-                Count = (Count / CharactersPerLine + 1) * CharactersPerLine;
-            }
-            else {
-                Count += 1;
-            }
-        }
-        v2 CursorPosition = v2((f32)(Count%CharactersPerLine), (f32)(Count/CharactersPerLine));
-        CursorDraw(Box, &Arena, CursorPosition, CursorVAO, CursorVBO, CursorShader);
+        v2 CursorPositionVector = v2((f32)CursorX, (f32)CursorY);
+        CursorDraw(Box, &Arena, CursorPositionVector, CursorVAO, CursorVBO, CursorShader);
         
-        if (GetKeyState(VK_ESCAPE) & 0x8000) {
-            Is_Running = false;
-        }
-  
-
         glFlush();
         SwapBuffers(Device_Context);
         FrameArenaReset(Arena);
