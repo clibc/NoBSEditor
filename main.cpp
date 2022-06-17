@@ -192,7 +192,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
             else if (Char == '\n' || Char == '\r') {
                 //Text[TextSize++] = Char;
-                Text[Lines.Lines[CursorY].StartIndex + CursorX] = Char;
+                Text[Lines.Lines[CursorY].StartIndex + CursorX] = '\n';
+                TextSize++;
             }
         }
         else {
@@ -203,12 +204,13 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClear(GL_COLOR_BUFFER_BIT);
 
         Lines = CalculateLines(Box, &Arena, Text, TextSize);
-        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
-        TextBoxPushText(RenderState, Text, TextSize, v3(1,0,0));
-        TextBoxEndDraw(RenderState);
 
         v2 CursorPositionVector = v2((f32)CursorX, (f32)CursorY);
         CursorDraw(Box, &Arena, CursorPositionVector, CursorVAO, CursorVBO, CursorShader);
+
+        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
+        TextBoxPushText(RenderState, Text, TextSize, v3(1,0,0));
+        TextBoxEndDraw(RenderState);
         
         glFlush();
         SwapBuffers(Device_Context);

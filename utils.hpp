@@ -67,11 +67,11 @@ FrameArenaCreate(u64 Size) {
 static FrameArenaMemory
 FrameArenaAllocateMemory(FrameArena& Arena, u64 Size) {
     Assert(Arena.PushOffset < Arena.MaxSize);
-    Arena.PushOffset += Size;
 
     FrameArenaMemory Memory;
     Memory.Size = Size;
     Memory.Memory = (char*)Arena.BasePointer + Arena.PushOffset;
+    Arena.PushOffset += Size;
     return Memory;
 }
 
@@ -113,8 +113,9 @@ struct CalculateLinesResult {
 // Calculates line start/end in a frame
 static CalculateLinesResult
 CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize) {
-    s32 LineCount = TruncateF32ToS32(Box.Height/Box.CharacterHeight);
-    Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, LineCount * sizeof(Line)).Memory;
+    // TODO : This size should be calculated by counting how many there are in the text.
+    // Now I calculate all the text so maybe I need to only consider text that is on the screen.
+    Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(Line)).Memory;
 
     u32 LinesIndex = 0;
     u32 LineStart = 0;
