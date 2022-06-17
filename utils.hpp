@@ -50,11 +50,6 @@ struct FrameArena {
     u64 PushOffset;
 };
 
-struct FrameArenaMemory {
-    void* Memory;
-    u64 Size;
-};
-
 static FrameArena
 FrameArenaCreate(u64 Size) {
     FrameArena Arena;
@@ -64,13 +59,11 @@ FrameArenaCreate(u64 Size) {
     return Arena;
 }
 
-static FrameArenaMemory
+static void*
 FrameArenaAllocateMemory(FrameArena& Arena, u64 Size) {
     Assert(Arena.PushOffset < Arena.MaxSize);
 
-    FrameArenaMemory Memory;
-    Memory.Size = Size;
-    Memory.Memory = (char*)Arena.BasePointer + Arena.PushOffset;
+    void* Memory = (char*)Arena.BasePointer + Arena.PushOffset;
     Arena.PushOffset += Size;
     return Memory;
 }
@@ -115,7 +108,7 @@ static CalculateLinesResult
 CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize) {
     // TODO : This size should be calculated by counting how many there are in the text.
     // Now I calculate all the text so maybe I need to only consider text that is on the screen.
-    Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(Line)).Memory;
+    Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(Line));
 
     u32 LinesIndex = 0;
     u32 LineStart = 0;
@@ -297,7 +290,7 @@ TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner) {
 
 struct TextBoxRenderState {
     TextBox Box;
-    FrameArenaMemory ArenaMemory;
+    void* ArenaMemory;
     u32 BatchCount;
     u32 VAO;
     u32 VBO;
@@ -328,7 +321,7 @@ TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u3
 
 static inline void
 TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1)) {
-    Vertex* BatchMemory = (Vertex*)State.ArenaMemory.Memory;
+    Vertex* BatchMemory = (Vertex*)State.ArenaMemory;
     TextBox Box = State.Box;
     Line* Lines = State.Lines->Lines;
 
@@ -381,16 +374,15 @@ TextBoxEndDraw(TextBoxRenderState& State) {
     glBindVertexArray(State.VAO);
     glBindBuffer(GL_ARRAY_BUFFER, State.VBO);
     glUseProgram(State.Shader);
-    glBufferData(GL_ARRAY_BUFFER, State.BatchCount * sizeof(Vertex), State.ArenaMemory.Memory, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, State.BatchCount * sizeof(Vertex), State.ArenaMemory, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, State.BatchCount);
 }
 
 static inline void
 CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, u32 VAO, u32 VBO, u32 Shader) {
     Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
-    FrameArenaMemory ArenaMemory = FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
 
-    CursorVertex* BatchMemory = (CursorVertex*)ArenaMemory.Memory;
+    CursorVertex* BatchMemory = (CursorVertex*)FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
     u32 BatchCurrentIndex = 0;
 
     CursorVertex V;
