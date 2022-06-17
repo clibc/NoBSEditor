@@ -22,17 +22,6 @@ HDC Device_Context;
 static char Text[MAX_CHARACTER_BUFFER];
 static s32  TextSize = 0;
 
-static inline v2
-CursorScreenPositionToText(CalculateLinesResult* Lines, v2 CursorPosition) {
-    u32 LineIndex = TruncateF32ToS32(CursorPosition.y);
-    u32 CharacterIndex = TruncateF32ToS32(CursorPosition.x);
-
-    LineIndex = Clamp(LineIndex, 0, Lines->LineCount - 1);
-    CharacterIndex = Clamp(CharacterIndex, 0, Lines->Lines[LineIndex].EndIndex - Lines->Lines[LineIndex].StartIndex);
-    
-    return v2((f32)CharacterIndex, (f32)LineIndex);
-}
-
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { 
     switch (uMsg) 
     { 
@@ -129,8 +118,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
-    char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f \nint main() {\n    return 0 \n}";
-    strcpy(Text, FillText);
+    char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n}";
+    strcpy_s(Text, FillText);
     TextSize += (u32)strlen(FillText);
 
     CalculateLinesResult Lines = CalculateLines(Box, &Arena, Text, TextSize);
@@ -145,6 +134,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         if(Msg.message == WM_KEYDOWN) {
             if((Msg.lParam & (1 << 30)) == 0) {
                 // Key down
+                if(Msg.wParam == 'K') {
+                    DebugLog("%c \n", Text[Lines.Lines[CursorY].StartIndex + CursorX]);
+                }
             }
             else {
                 // Key hold down
@@ -195,10 +187,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         else if(Msg.message == WM_CHAR) {
             u8 Char = (u8)Msg.wParam;
             if(Char >= 32 && Char <= 126) {
-                Text[TextSize++] = Char;
+                //Text[TextSize++] = Char;
+                Text[Lines.Lines[CursorY].StartIndex + CursorX] = Char;
             }
             else if (Char == '\n' || Char == '\r') {
-                Text[TextSize++] = Char;
+                //Text[TextSize++] = Char;
+                Text[Lines.Lines[CursorY].StartIndex + CursorX] = Char;
             }
         }
         else {

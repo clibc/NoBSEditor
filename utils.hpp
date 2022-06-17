@@ -143,13 +143,13 @@ struct CreateFontTextureResult {
     u32 TextureID;
     u32 TextureWidth;
     u32 TextureHeight;
-    u32 CharacterPerLine;
+    u32 CharactersPerLine;
     u32 CharacterWidth;
     u32 CharacterHeight;
 };
 
 static CreateFontTextureResult
-CreateFontTexture() {      
+CreateFontTexture() {
     HDC DeviceContext = CreateCompatibleDC(GetDC(0));
     Assert(DeviceContext);
 
@@ -236,7 +236,7 @@ CreateFontTexture() {
     Result.TextureID = Texture;
     Result.TextureWidth = TextureWidth;
     Result.TextureHeight = TextureHeight;
-    Result.CharacterPerLine = CharacterPerLine;
+    Result.CharactersPerLine = CharacterPerLine;
     Result.CharacterWidth  = CharSize.cx;
     Result.CharacterHeight = CharSize.cy;
 
@@ -256,8 +256,8 @@ CreateFontLookupTable(const CreateFontTextureResult& FontData) {
     s32 ArrayIndex = 0;
     for(s32 i = 33; i < 127; ++i) {
         s32 Index = i-33;
-        f32 IndexX = (f32)(Index % FontData.CharacterPerLine);
-        f32 IndexY = (f32)(Index / FontData.CharacterPerLine);
+        f32 IndexX = (f32)(Index % FontData.CharactersPerLine);
+        f32 IndexY = (f32)(Index / FontData.CharactersPerLine);
 
         // Top left
         TextureCoords[ArrayIndex + 0].x = CW*IndexX;
