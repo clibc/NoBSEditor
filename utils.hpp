@@ -325,17 +325,24 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
     TextBox Box = State.Box;
     Line* Lines = State.Lines->Lines;
 
+    s32 StartPosition = State.CursorPosition;
+    
     for(u32 j = 0; j < TextSize; ++j) {
+        if(Text[j] == '\n' || Text[j] == ' ' || Text[j] == '\r') {
+            State.CursorPosition++;
+            continue;
+        }
+        
         u32 i;
         for(i = 0; i < State.Lines->LineCount; ++i) {
-            if(j >= Lines[i].StartIndex && j < Lines[i].EndIndex)
+            if(j + StartPosition >= Lines[i].StartIndex && j + StartPosition < Lines[i].EndIndex)
             {
                 break;
             }
         }
 
         v2 CursorPosition;
-        CursorPosition.x = (f32)(j - Lines[i].StartIndex);
+        CursorPosition.x = (f32)(StartPosition + j - Lines[i].StartIndex);
         CursorPosition.y = (f32)i;
 
         Vertex V;

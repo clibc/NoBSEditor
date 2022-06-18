@@ -228,7 +228,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         CursorDraw(Box, &Arena, CursorPositionVector, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
-        TextBoxPushText(RenderState, Text, TextSize, v3(1,0,0));
+        TextBoxPushText(RenderState, Text, TextSize/2, v3(1,0,0));
+        TextBoxPushText(RenderState, Text+TextSize/2, TextSize - TextSize/2, v3(0,1,0));
         TextBoxEndDraw(RenderState);
         
         glFlush();
