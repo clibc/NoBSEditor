@@ -149,52 +149,69 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             if(Msg.wParam == VK_UP)
             {
-                CursorY = Clamp(CursorY - 1, 0, Lines.LineCount - 1);
+                u32 LineCount = Max(0, Lines.LineCount - 1);
+                CursorY = Clamp(CursorY - 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
             }
             else if (Msg.wParam == VK_DOWN)
             {
-                CursorY = Clamp(CursorY + 1, 0, Lines.LineCount - 1);
+                u32 LineCount = Max(0, Lines.LineCount - 1);
+                CursorY = Clamp(CursorY + 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
             }
             else if (Msg.wParam == VK_LEFT)
             {
-                CursorX -= 1;
-                if(CursorX < 0) { // go one up
-                    if(CursorY > 0) {
-                        CursorY -= 1;
-                        CursorX = Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex;
-                    }
-                    else { // first row
-                        CursorX = 0;
-                    }
-                }
+                CursorMoveLeft(CursorX, CursorY, Lines);
             }
             else if (Msg.wParam == VK_RIGHT)
             {
-                CursorX += 1;
-                if(CursorX > (s32)(Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex)) { 
-                    if(CursorY < (s32)Lines.LineCount - 1) { // go one down
-                        CursorX = 0;
-                        CursorY += 1;
+                CursorMoveRight(CursorX, CursorY, Lines);
+            }
+            else if (Msg.wParam == VK_DELETE) {
+                s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
+                if(EditingIndex < TextSize) {
+                    TextSize -= 1;
+                    for(s32 i = EditingIndex; i < TextSize; ++i) {
+                        Text[i] = Text[i+1];
                     }
-                    else { // Last row last colomn
-                        CursorX -= 1;
+                    CursorMoveRight(CursorX, CursorY, Lines);
+                    CursorMoveLeft(CursorX, CursorY, Lines);
+                }
+            }
+            else if (Msg.wParam == VK_BACK) {
+                s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
+                if(EditingIndex > 0) {
+                    TextSize -= 1;
+                    for(s32 i = EditingIndex - 1; i < TextSize; ++i) {
+                        Text[i] = Text[i+1];
                     }
+                    CursorMoveLeft(CursorX, CursorY, Lines);
                 }
             }
         }
-        else if(Msg.message == WM_CHAR) {
+        else if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK && Msg.wParam != VK_DELETE) {
             u8 Char = (u8)Msg.wParam;
+            s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
             if(Char >= 32 && Char <= 126) {
                 //Text[TextSize++] = Char;
-                Text[Lines.Lines[CursorY].StartIndex + CursorX] = Char;
+                 TextSize++;
+                 CursorX += 1;
             }
             else if (Char == '\n' || Char == '\r') {
                 //Text[TextSize++] = Char;
-                Text[Lines.Lines[CursorY].StartIndex + CursorX] = '\n';
+                Char = '\n';
                 TextSize++;
+                CursorY += 1;
+                CursorX = 0;
             }
+            // shift text by 1
+            char OldChar = Text[EditingIndex];
+            for(s32 i = EditingIndex + 1; i < TextSize + 1; ++i) {
+                char NewOld = Text[i];
+                Text[i] = OldChar;
+                OldChar = NewOld;
+            }
+            Text[EditingIndex] = Char;
         }
         else {
             DispatchMessage(&Msg);

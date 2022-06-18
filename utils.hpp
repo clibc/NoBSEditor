@@ -119,7 +119,7 @@ CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize) {
             LinesIndex += 1;
             LineStart = i + 1;
         }
-        else if(i == TextSize - 1) {
+        if(i == TextSize - 1) {
             Lines[LinesIndex].StartIndex = LineStart;
             Lines[LinesIndex].EndIndex   = i + 1;
             LinesIndex += 1;
@@ -129,7 +129,7 @@ CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize) {
     CalculateLinesResult Result = {};
     Result.Lines = Lines;
     Result.LineCount = LinesIndex;
-
+    
     return Result;
 }
 
@@ -522,4 +522,32 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	glDeleteShader(FragmentShaderID);
 
 	return ProgramID;
+}
+
+static inline void
+CursorMoveLeft(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines) {
+    CursorX -= 1;
+    if(CursorX < 0) { // go one up
+        if(CursorY > 0) {
+            CursorY -= 1;
+            CursorX = Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex;
+        }
+        else { // first row
+            CursorX = 0;
+        }
+    }
+}
+
+static inline void
+CursorMoveRight(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines) {
+    CursorX += 1;
+    if(CursorX > (s32)(Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex)) { 
+        if(CursorY < (s32)Lines.LineCount - 1) { // go one down
+            CursorX = 0;
+            CursorY += 1;
+        }
+        else { // Last row last colomn
+            CursorX -= 1;
+        }
+    }
 }
