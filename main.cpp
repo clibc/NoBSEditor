@@ -130,7 +130,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     s32 CursorY = 0;
 
     while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) {
-        TranslateMessage(&Msg);
         if(Msg.message == WM_KEYDOWN) {
             if((Msg.lParam & (1 << 30)) == 0) {
                 // Key down
@@ -146,8 +145,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 Is_Running = false;
             }
-
-            if(Msg.wParam == VK_UP)
+            else if(Msg.wParam == VK_UP)
             {
                 u32 LineCount = Max(0, Lines.LineCount - 1);
                 CursorY = Clamp(CursorY - 1, 0, LineCount);
@@ -188,14 +186,18 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     CursorMoveLeft(CursorX, CursorY, Lines);
                 }
             }
+            else {
+                // We do this way because '.' character and VK_DELETE have the same key code (IDK why) 
+                TranslateMessage(&Msg);
+            }
         }
-        else if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK && Msg.wParam != VK_DELETE) {
+        else if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) {
             u8 Char = (u8)Msg.wParam;
             s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
             if(Char >= 32 && Char <= 126) {
                 //Text[TextSize++] = Char;
-                 TextSize++;
-                 CursorX += 1;
+                TextSize++;
+                CursorX += 1;
             }
             else if (Char == '\n' || Char == '\r') {
                 //Text[TextSize++] = Char;
