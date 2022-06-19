@@ -428,7 +428,7 @@ CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height) {
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = "nobsed_window_class";
-    assert(RegisterClass(&wc));
+    Assert(RegisterClass(&wc));
     HWND window_handle = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW,
                                         wc.lpszClassName,
                                         "NoBSEditor",
@@ -436,7 +436,7 @@ CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height) {
                                         CW_USEDEFAULT,CW_USEDEFAULT,
                                         width, height,
                                         NULL,NULL,hInstance,NULL);
-    assert(window_handle);
+    Assert(window_handle);
     return window_handle;
 }
 
@@ -557,4 +557,26 @@ CursorMoveRight(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines) {
             CursorX -= 1;
         }
     }
+}
+
+struct SplitBuffer {
+    void* First;
+    void* Second;
+
+    u32 MiddleStart; // First End
+    u32 SecondStart;
+    u32 Size;
+};
+
+// @TODO : Implement this
+static inline SplitBuffer
+SplitBufferCreate(u32 Size) {
+    SplitBuffer SB;
+    SB.Size = Size;
+    SB.First = AllocateMemory(Size);
+    SB.MiddleStart = Size/3 * 1;
+    SB.SecondStart = Size/3 * 2;
+    SB.Second = (char*)SB.First + SB.SecondStart;
+
+    return SB;
 }

@@ -123,6 +123,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     TextSize += (u32)strlen(FillText);
 
     CalculateLinesResult Lines = CalculateLines(Box, &Arena, Text, TextSize);
+
+    SplitBuffer SB = SplitBufferCreate(1024);
     
     MSG Msg;
 
@@ -195,12 +197,10 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             u8 Char = (u8)Msg.wParam;
             s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
             if(Char >= 32 && Char <= 126) {
-                //Text[TextSize++] = Char;
                 TextSize++;
                 CursorX += 1;
             }
             else if (Char == '\n' || Char == '\r') {
-                //Text[TextSize++] = Char;
                 Char = '\n';
                 TextSize++;
                 CursorY += 1;
@@ -228,8 +228,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         CursorDraw(Box, &Arena, CursorPositionVector, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
-        TextBoxPushText(RenderState, Text, TextSize/2, v3(1,0,0));
-        TextBoxPushText(RenderState, Text+TextSize/2, TextSize - TextSize/2, v3(0,1,0));
+        TextBoxPushText(RenderState, Text, 4, v3(0,1,0));
+        TextBoxPushText(RenderState, Text+4, 4, v3(1,0,1));
+        TextBoxPushText(RenderState, Text+8, TextSize-8, v3(1,0,0));
         TextBoxEndDraw(RenderState);
         
         glFlush();
