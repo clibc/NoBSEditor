@@ -22,19 +22,23 @@ HDC Device_Context;
 static char Text[MAX_CHARACTER_BUFFER];
 static s32  TextSize = 0;
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { 
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
+{
     switch (uMsg) 
-    { 
-    case WM_CREATE: {
+    {
+    case WM_CREATE: 
+    {
         InitializeOpenGL(hwnd);
         return 0;
     } break;
-    case WM_SIZE: {
+    case WM_SIZE: 
+    {
         const u32 Width  = LOWORD(lParam);
         const u32 Height = HIWORD(lParam);
         glViewport(0, 0, (GLint)Width, (GLint)Height);
     } break;
-    case WM_DESTROY: {
+    case WM_DESTROY: 
+    {
         Is_Running = false;
     } break;
     case WM_CHAR:
@@ -46,7 +50,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 }
 
 s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
-                   LPSTR lpCmdLine, int nCmdShow) {
+                   LPSTR lpCmdLine, int nCmdShow) 
+{
     Assert(AllocConsole());
 
     HWND window_handle = CreateOpenGLWindow(hInstance, nCmdShow,
@@ -116,30 +121,34 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     FrameArena Arena = FrameArenaCreate(Megabytes(2));
     
-    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
+    TextBox Box = { WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n}";
     strcpy_s(Text, FillText);
     TextSize += (u32)strlen(FillText);
-
     CalculateLinesResult Lines = CalculateLines(Box, &Arena, Text, TextSize);
-
-    SplitBuffer SB = SplitBufferCreate(1024);
+    SplitBuffer SB = SplitBufferCreate(1024, Text, TextSize);
     
     MSG Msg;
 
     s32 CursorX = 0;
     s32 CursorY = 0;
 
-    while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) {
-        if(Msg.message == WM_KEYDOWN) {
-            if((Msg.lParam & (1 << 30)) == 0) {
+    while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) 
+    {
+
+        if(Msg.message == WM_KEYDOWN) 
+        {
+            if((Msg.lParam & (1 << 30)) == 0) 
+            {
                 // Key down
-                if(Msg.wParam == 'K') {
+                if(Msg.wParam == 'K') 
+                {
                     DebugLog("%c \n", Text[Lines.Lines[CursorY].StartIndex + CursorX]);
                 }
             }
-            else {
+            else 
+            {
                 // Key hold down
             }
 
@@ -149,13 +158,13 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
             else if(Msg.wParam == VK_UP)
             {
-                u32 LineCount = Max(0, Lines.LineCount - 1);
+                u32 LineCount = Max(0, Lines.Count - 1);
                 CursorY = Clamp(CursorY - 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
             }
             else if (Msg.wParam == VK_DOWN)
             {
-                u32 LineCount = Max(0, Lines.LineCount - 1);
+                u32 LineCount = Max(0, Lines.Count - 1);
                 CursorY = Clamp(CursorY + 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
             }
@@ -167,40 +176,50 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 CursorMoveRight(CursorX, CursorY, Lines);
             }
-            else if (Msg.wParam == VK_DELETE) {
+            else if (Msg.wParam == VK_DELETE) 
+            {
                 s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
-                if(EditingIndex < TextSize) {
+                if(EditingIndex < TextSize) 
+                {
                     TextSize -= 1;
-                    for(s32 i = EditingIndex; i < TextSize; ++i) {
+                    for(s32 i = EditingIndex; i < TextSize; ++i) 
+                    {
                         Text[i] = Text[i+1];
                     }
                     CursorMoveRight(CursorX, CursorY, Lines);
                     CursorMoveLeft(CursorX, CursorY, Lines);
                 }
             }
-            else if (Msg.wParam == VK_BACK) {
+            else if (Msg.wParam == VK_BACK) 
+            {
                 s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
-                if(EditingIndex > 0) {
+                if(EditingIndex > 0) 
+                {
                     TextSize -= 1;
-                    for(s32 i = EditingIndex - 1; i < TextSize; ++i) {
+                    for(s32 i = EditingIndex - 1; i < TextSize; ++i) 
+                    {
                         Text[i] = Text[i+1];
                     }
                     CursorMoveLeft(CursorX, CursorY, Lines);
                 }
             }
-            else {
+            else 
+            {
                 // We do this way because '.' character and VK_DELETE have the same key code (IDK why) 
                 TranslateMessage(&Msg);
             }
         }
-        else if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) {
+        else if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) 
+        {
             u8 Char = (u8)Msg.wParam;
             s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
-            if(Char >= 32 && Char <= 126) {
+            if(Char >= 32 && Char <= 126) 
+            {
                 TextSize++;
                 CursorX += 1;
             }
-            else if (Char == '\n' || Char == '\r') {
+            else if (Char == '\n' || Char == '\r') 
+            {
                 Char = '\n';
                 TextSize++;
                 CursorY += 1;
@@ -208,14 +227,16 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
             // shift text by 1
             char OldChar = Text[EditingIndex];
-            for(s32 i = EditingIndex + 1; i < TextSize + 1; ++i) {
+            for(s32 i = EditingIndex + 1; i < TextSize + 1; ++i) 
+            {
                 char NewOld = Text[i];
                 Text[i] = OldChar;
                 OldChar = NewOld;
             }
             Text[EditingIndex] = Char;
         }
-        else {
+        else 
+        {
             DispatchMessage(&Msg);
         }
 

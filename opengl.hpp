@@ -67,19 +67,20 @@ bool  (ENTRY *wglChoosePixelFormatARB)(HDC, const int*, const FLOAT *, UINT, int
 static void*
 GetFuncAddress(const char *name)
 {
-  void *p = (void *)wglGetProcAddress(name);
-  if(p == 0 ||
-    (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
-    (p == (void*)-1) )
-  {
-    HMODULE module = LoadLibraryA("opengl32.dll");
-    p = (void*)GetProcAddress(module, name);
-  }
-  return p;
+    void *p = (void *)wglGetProcAddress(name);
+    if(p == 0 ||
+       (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
+       (p == (void*)-1) )
+    {
+        HMODULE module = LoadLibraryA("opengl32.dll");
+        p = (void*)GetProcAddress(module, name);
+    }
+    return p;
 }
 
 static void
-LoadOpenGLFuncs() {
+LoadOpenGLFuncs()
+{
     glGenBuffers = (void (ENTRY*)(GLsizei,GLuint*))GetFuncAddress("glGenBuffers");
     glBindBuffer = (void (ENTRY*)(GLenum, GLuint))GetFuncAddress("glBindBuffer");
     glBufferData = (void (ENTRY*)(GLenum, GLsizeiptr, const GLvoid*, GLenum))GetFuncAddress("glBufferData");
@@ -142,28 +143,28 @@ LoadOpenGLFuncs() {
 }
 
 static void
-InitializeOpenGL(HWND hwnd) {
+InitializeOpenGL(HWND hwnd)
+{
     DebugLog("Creating OPENGL Context\n");
 
-    PIXELFORMATDESCRIPTOR pfd =
-        {
-            sizeof(PIXELFORMATDESCRIPTOR),
-            1,
-            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, //Flags
-            PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
-            32,                   // Colordepth of the framebuffer.
-            0, 0, 0, 0, 0, 0,
-            0,
-            0,
-            0,
-            0, 0, 0, 0,
-            24,                   // Number of bits for the depthbuffer
-            8,                    // Number of bits for the stencilbuffer
-            0,                    // Number of Aux buffers in the framebuffer.
-            PFD_MAIN_PLANE,
-            0,
-            0, 0, 0
-        };
+    PIXELFORMATDESCRIPTOR pfd = {
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, //Flags
+        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+        32,                   // Colordepth of the framebuffer.
+        0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0,
+        24,                   // Number of bits for the depthbuffer
+        8,                    // Number of bits for the stencilbuffer
+        0,                    // Number of Aux buffers in the framebuffer.
+        PFD_MAIN_PLANE,
+        0,
+        0, 0, 0
+    };
     
     s32 gl_context_attribs[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
@@ -185,10 +186,12 @@ InitializeOpenGL(HWND hwnd) {
 }
 
 static inline void 
-OpenGLGetError() {
+OpenGLGetError()
+{
     GLenum err;
 
-    while((err = glGetError()) != GL_NO_ERROR) {
+    while((err = glGetError()) != GL_NO_ERROR)
+    {
         DebugLog("OpenGL error code : %x\n", err);
     }
 }

@@ -10,7 +10,8 @@ out vec3 FontColor;
 uniform mat4 OrthoMatrix;
 uniform vec2[94*4] TextureLookupTable;
 
-void main() {
+void main()
+{
     gl_Position = OrthoMatrix * vec4(VertexPosition, 1);
     TextureOut  = TextureLookupTable[CharacterIndex];
     FontColor = VertexColor;

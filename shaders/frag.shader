@@ -6,7 +6,8 @@ in vec3 FontColor;
 
 uniform sampler2D Texture;
 
-void main() {
+void main()
+{
     vec4 TexColor = texture(Texture, TextureOut);
     FragColor = vec4(FontColor, TexColor.x);
 }

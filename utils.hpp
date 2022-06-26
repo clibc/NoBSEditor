@@ -6,52 +6,71 @@ if(!(Expression)) { *(int*)0 = 0; }
 #define Megabytes(x) (x*1024*1024)
 
 static inline s32
-TruncateF32ToS32(f32 Value) {
+TruncateF32ToS32(f32 Value)
+{
     return (s32)Value;
 }
 
 static inline s32
-RoundF32ToS32(f32 Value) {
+RoundF32ToS32(f32 Value)
+{
     return (s32)(Value + 0.5f);
 }
 
-struct ReadEntireFileResult {
+struct ReadEntireFileResult
+{
     char* content;
     s32   size;
 };
 
 static ReadEntireFileResult
-ReadEntireFile() {
+ReadEntireFile()
+{
     ReadEntireFileResult result;
     return result;
 }
 
 static void*
-AllocateMemory(u64 Size) {
+AllocateMemory(u64 Size)
+{
     return VirtualAlloc(NULL, Size,
                         MEM_COMMIT|MEM_RESERVE,
                         PAGE_READWRITE);    
 }
 
 static void
-FreeMemory(void* Memory) {
-    if(Memory) {
+Memset(void* Source, void* Dest, u32 Size)
+{
+    for(u32 i = 0; i < Size; ++i)
+    {
+        ((char*)Dest)[i] = ((char*)Source)[i];
+    }
+}
+
+static void
+FreeMemory(void* Memory)
+{
+    if(Memory)
+    {
         s32 Result = VirtualFree(Memory, 0, MEM_RELEASE);
-        if(!Result) {
+        if(!Result)
+        {
             DebugLog("FreeMemory failed with error code: %i", GetLastError());
         }
         Assert(Result);
     }
 }
 
-struct FrameArena {
+struct FrameArena
+{
     void* BasePointer;
     u64 MaxSize;
     u64 PushOffset;
 };
 
 static FrameArena
-FrameArenaCreate(u64 Size) {
+FrameArenaCreate(u64 Size)
+{
     FrameArena Arena;
     Arena.MaxSize = Size;
     Arena.PushOffset = 0;
@@ -60,7 +79,8 @@ FrameArenaCreate(u64 Size) {
 }
 
 static void*
-FrameArenaAllocateMemory(FrameArena& Arena, u64 Size) {
+FrameArenaAllocateMemory(FrameArena& Arena, u64 Size)
+{
     Assert(Arena.PushOffset < Arena.MaxSize);
 
     void* Memory = (char*)Arena.BasePointer + Arena.PushOffset;
@@ -69,19 +89,22 @@ FrameArenaAllocateMemory(FrameArena& Arena, u64 Size) {
 }
 
 static void
-FrameArenaReset(FrameArena& Arena) {
+FrameArenaReset(FrameArena& Arena)
+{
     Arena.PushOffset = 0;
 }
 
 static void
-FrameArenaDelete(FrameArena& Arena) {
+FrameArenaDelete(FrameArena& Arena)
+{
     FreeMemory(Arena.BasePointer);
     Arena.BasePointer = NULL;
     Arena.MaxSize = 0;
     Arena.PushOffset = 0;
 }
 
-struct TextBox {
+struct TextBox
+{
     f32 Width;
     f32 Height;
     f32 CharacterWidth;
@@ -93,33 +116,39 @@ struct TextBox {
 #define CharBotLeft  v2(0,1)
 #define CharBotRight v2(1,1)
 
-struct Line {
+struct Line
+{
     u32 StartIndex;
     u32 EndIndex;
 };
 
-struct CalculateLinesResult {
+struct CalculateLinesResult
+{
     Line* Lines;
-    u32   LineCount;
+    u32   Count;
 };
 
 // Calculates line start/end in a frame
 static CalculateLinesResult
-CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize) {
+CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize)
+{
     // TODO : This size should be calculated by counting how many there are in the text.
     // Now I calculate all the text so maybe I need to only consider text that is on the screen.
     Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(Line));
 
     u32 LinesIndex = 0;
     u32 LineStart = 0;
-    for(u32 i = 0; i < TextSize; ++i) {
-        if(Text[i] == '\n') {
+    for(u32 i = 0; i < TextSize; ++i)
+    {
+        if(Text[i] == '\n')
+        {
             Lines[LinesIndex].StartIndex = LineStart;
             Lines[LinesIndex].EndIndex   = i;
             LinesIndex += 1;
             LineStart = i + 1;
         }
-        if(i == TextSize - 1) {
+        if(i == TextSize - 1)
+        {
             Lines[LinesIndex].StartIndex = LineStart;
             Lines[LinesIndex].EndIndex   = i + 1;
             LinesIndex += 1;
@@ -128,12 +157,13 @@ CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize) {
 
     CalculateLinesResult Result = {};
     Result.Lines = Lines;
-    Result.LineCount = LinesIndex;
+    Result.Count = LinesIndex;
     
     return Result;
 }
 
-struct CreateFontTextureResult {
+struct CreateFontTextureResult
+{
     u32 TextureID;
     u32 TextureWidth;
     u32 TextureHeight;
@@ -143,7 +173,8 @@ struct CreateFontTextureResult {
 };
 
 static CreateFontTextureResult
-CreateFontTexture() {
+CreateFontTexture()
+{
     HDC DeviceContext = CreateCompatibleDC(GetDC(0));
     Assert(DeviceContext);
 
@@ -194,14 +225,18 @@ CreateFontTexture() {
 
     u32 PitchX = 0;
     u32 PitchY = 0;
-    for(s32 i = 33; i < 127; ++i) {
+    for(s32 i = 33; i < 127; ++i)
+    {
         wchar_t Character = (wchar_t)i;
         TextOutW(DeviceContext, PitchX, PitchY, &Character, 1);
 
-        if((i-32) % CharacterPerLine == 0) {
+        if((i-32) % CharacterPerLine == 0)
+        {
             PitchX = 0;
             PitchY += CharSize.cy;
-        } else {
+        }
+        else
+        {
             PitchX += CharSize.cx;
         }
     }
@@ -209,8 +244,10 @@ CreateFontTexture() {
     u8* Buffer = (u8*)AllocateMemory(sizeof(u8)*TextureWidth*TextureHeight);
     u8* PixelPtr = Buffer;
     
-    for(u32 v = 0; v < TextureHeight; ++v) {
-        for(u32 u = 0; u < TextureWidth; ++u) {
+    for(u32 v = 0; v < TextureHeight; ++v)
+    {
+        for(u32 u = 0; u < TextureWidth; ++u)
+        {
             u32 Color = *BitmapPixels++;
             *PixelPtr = (u8)((u32*)&Color)[0];
             ++PixelPtr;
@@ -241,14 +278,16 @@ CreateFontTexture() {
 }
 
 static v2*
-CreateFontLookupTable(const CreateFontTextureResult& FontData) {
+CreateFontLookupTable(const CreateFontTextureResult& FontData)
+{
     v2* TextureCoords = (v2*)AllocateMemory(sizeof(v2) * 94 * 4);
 
     f32 CW = (f32)FontData.CharacterWidth / (f32)FontData.TextureWidth;
     f32 CH = (f32)FontData.CharacterHeight / (f32)FontData.TextureHeight;
 
     s32 ArrayIndex = 0;
-    for(s32 i = 33; i < 127; ++i) {
+    for(s32 i = 33; i < 127; ++i)
+    {
         s32 Index = i-33;
         f32 IndexX = (f32)(Index % FontData.CharactersPerLine);
         f32 IndexY = (f32)(Index / FontData.CharactersPerLine);
@@ -270,13 +309,15 @@ CreateFontLookupTable(const CreateFontTextureResult& FontData) {
     return TextureCoords;
 }
 
-struct Vertex {
+struct Vertex
+{
     v3 Position;
     v3 Color;
     s32 CharacterIndex;
 };
 
-struct CursorVertex {
+struct CursorVertex
+{
     v3 Position;
     v3 Color;
 };
@@ -288,7 +329,8 @@ TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner) {
               0);
 }
 
-struct TextBoxRenderState {
+struct TextBoxRenderState
+{
     TextBox Box;
     void* ArenaMemory;
     u32 BatchCount;
@@ -300,7 +342,8 @@ struct TextBoxRenderState {
 };
 
 static inline TextBoxRenderState
-TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u32 VAO, u32 VBO, u32 Shader) {
+TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u32 VAO, u32 VBO, u32 Shader)
+{
     Assert(Arena != NULL);
     Assert(VAO >= 0);
     Assert(VBO >= 0);
@@ -320,21 +363,25 @@ TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u3
 }
 
 static inline void
-TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1)) {
+TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
+{
     Vertex* BatchMemory = (Vertex*)State.ArenaMemory;
     TextBox Box = State.Box;
     Line* Lines = State.Lines->Lines;
 
     s32 StartPosition = State.CursorPosition;
     
-    for(u32 j = 0; j < TextSize; ++j) {
-        if(Text[j] == '\n' || Text[j] == ' ' || Text[j] == '\r') {
+    for(u32 j = 0; j < TextSize; ++j)
+    {
+        if(Text[j] == '\n' || Text[j] == ' ' || Text[j] == '\r')
+        {
             State.CursorPosition++;
             continue;
         }
         
         u32 i;
-        for(i = 0; i < State.Lines->LineCount; ++i) {
+        for(i = 0; i < State.Lines->Count; ++i)
+        {
             if(j + StartPosition >= Lines[i].StartIndex && j + StartPosition < Lines[i].EndIndex)
             {
                 break;
@@ -377,7 +424,8 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
 }
 
 static inline void
-TextBoxEndDraw(TextBoxRenderState& State) {
+TextBoxEndDraw(TextBoxRenderState& State)
+{
     glBindVertexArray(State.VAO);
     glBindBuffer(GL_ARRAY_BUFFER, State.VBO);
     glUseProgram(State.Shader);
@@ -386,7 +434,8 @@ TextBoxEndDraw(TextBoxRenderState& State) {
 }
 
 static inline void
-CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, u32 VAO, u32 VBO, u32 Shader) {
+CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, u32 VAO, u32 VBO, u32 Shader)
+{
     Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
 
     CursorVertex* BatchMemory = (CursorVertex*)FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
@@ -422,7 +471,8 @@ CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, u32 VAO, u32 VBO, 
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static HWND
-CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height) {
+CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height)
+{
     WNDCLASS wc = {};
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = WindowProc;
@@ -441,7 +491,8 @@ CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height) {
 }
 
 static GLuint
-LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_path){
+LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_path)
+{
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -449,12 +500,15 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	// Read the Vertex Shader code from the file
 	std::string VertexShaderCode;
 	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
-	if(VertexShaderStream.is_open()){
+	if(VertexShaderStream.is_open())
+    {
 		std::stringstream sstr;
 		sstr << VertexShaderStream.rdbuf();
 		VertexShaderCode = sstr.str();
 		VertexShaderStream.close();
-	}else {
+	}
+    else
+    {
 		DebugLog("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
 		getchar();
 		exit(-1);
@@ -463,7 +517,9 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	// Read the Fragment Shader code from the file
 	std::string FragmentShaderCode;
 	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
-	if(FragmentShaderStream.is_open()){
+
+	if(FragmentShaderStream.is_open())
+    {
 		std::stringstream sstr;
 		sstr << FragmentShaderStream.rdbuf();
 		FragmentShaderCode = sstr.str();
@@ -482,7 +538,8 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	// Check Vertex Shader
 	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if ( InfoLogLength > 0 ){
+	if (InfoLogLength > 0)
+    {
 		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
 		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
 		DebugLog("%s\n", &VertexShaderErrorMessage[0]);
@@ -498,7 +555,8 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	// Check Fragment Shader
 	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if ( InfoLogLength > 0 ){
+	if (InfoLogLength > 0)
+    {
 		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
 		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
 		DebugLog("%s\n", &FragmentShaderErrorMessage[0]);
@@ -515,7 +573,8 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	// Check the program
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
 	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if ( InfoLogLength > 0 ){
+	if (InfoLogLength > 0)
+    {
 		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
 		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
 		DebugLog("%s\n", &ProgramErrorMessage[0]);
@@ -532,51 +591,73 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 }
 
 static inline void
-CursorMoveLeft(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines) {
+CursorMoveLeft(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines)
+{
     CursorX -= 1;
-    if(CursorX < 0) { // go one up
-        if(CursorY > 0) {
+    if(CursorX < 0)
+    { // go one up
+        if(CursorY > 0)
+        {
             CursorY -= 1;
             CursorX = Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex;
         }
-        else { // first row
+        else
+        { // first row
             CursorX = 0;
         }
     }
 }
 
 static inline void
-CursorMoveRight(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines) {
+CursorMoveRight(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines)
+{
     CursorX += 1;
-    if(CursorX > (s32)(Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex)) { 
-        if(CursorY < (s32)Lines.LineCount - 1) { // go one down
+    if(CursorX > (s32)(Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex))
+    { 
+        if(CursorY < (s32)Lines.Count - 1)
+        { // go one down
             CursorX = 0;
             CursorY += 1;
         }
-        else { // Last row last colomn
+        else
+        { // Last row last colomn
             CursorX -= 1;
         }
     }
 }
 
-struct SplitBuffer {
-    void* First;
-    void* Second;
-
-    u32 MiddleStart; // First End
-    u32 SecondStart;
+struct SplitBuffer
+{
+    char* Start;
     u32 Size;
+    u32 Middle; // First End
+    u32 Second;
+    u32 SecondEnd;
 };
 
 // @TODO : Implement this
 static inline SplitBuffer
-SplitBufferCreate(u32 Size) {
+SplitBufferCreate(u32 Size, char* Text, u32 TextSize)
+{
     SplitBuffer SB;
     SB.Size = Size;
-    SB.First = AllocateMemory(Size);
-    SB.MiddleStart = Size/3 * 1;
-    SB.SecondStart = Size/3 * 2;
-    SB.Second = (char*)SB.First + SB.SecondStart;
+    SB.Start = (char*)AllocateMemory(Size);
+    SB.Middle = 0;
+    SB.Second = Size/3 * 2;
+    SB.SecondEnd = SB.Second + TextSize;
 
+    Memset(Text, SB.Start + SB.Second, TextSize);
     return SB;
+}
+
+//_***********
+//****_*******
+
+static inline void
+SplitBufferSplit(SplitBuffer& SB, u32 CursorPosition)
+{
+    s32 Diff = CursorPosition - SB.Middle;
+    SB.Middle = CursorPosition;
+    SB.Second += Diff;
+    Memset(SB.Start, SB.Start + SB.Second, CursorPosition + 1);
 }
