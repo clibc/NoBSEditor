@@ -136,7 +136,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) 
     {
-
         if(Msg.message == WM_KEYDOWN) 
         {
             if((Msg.lParam & (1 << 30)) == 0) 
