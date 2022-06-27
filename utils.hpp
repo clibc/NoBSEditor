@@ -365,6 +365,8 @@ TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u3
 static inline void
 TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
 {
+    if(TextSize <= 0) return;
+    
     Vertex* BatchMemory = (Vertex*)State.ArenaMemory;
     TextBox Box = State.Box;
     Line* Lines = State.Lines->Lines;
@@ -591,37 +593,38 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 }
 
 static inline void
-CursorMoveLeft(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines)
+CursorMoveLeft(s32* CursorX, s32* CursorY, CalculateLinesResult& Lines)
 {
-    CursorX -= 1;
-    if(CursorX < 0)
+    *CursorX -= 1;
+
+    if(*CursorX < 0)
     { // go one up
-        if(CursorY > 0)
+        if(*CursorY > 0)
         {
-            CursorY -= 1;
-            CursorX = Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex;
+            *CursorY -= 1;
+            *CursorX = Lines.Lines[*CursorY].EndIndex - Lines.Lines[*CursorY].StartIndex;
         }
         else
         { // first row
-            CursorX = 0;
+            *CursorX = 0;
         }
     }
 }
 
 static inline void
-CursorMoveRight(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines)
+CursorMoveRight(s32* CursorX, s32* CursorY, CalculateLinesResult& Lines)
 {
-    CursorX += 1;
-    if(CursorX > (s32)(Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex))
+    *CursorX += 1;
+    if(*CursorX > (s32)(Lines.Lines[*CursorY].EndIndex - Lines.Lines[*CursorY].StartIndex))
     { 
-        if(CursorY < (s32)Lines.Count - 1)
+        if(*CursorY < (s32)Lines.Count - 1)
         { // go one down
-            CursorX = 0;
-            CursorY += 1;
+            *CursorX = 0;
+            *CursorY += 1;
         }
         else
-        { // Last row last colomn
-            CursorX -= 1;
+        { // Last row last column
+            *CursorX -= 1;
         }
     }
 }
@@ -629,35 +632,116 @@ CursorMoveRight(s32& CursorX, s32& CursorY, CalculateLinesResult& Lines)
 struct SplitBuffer
 {
     char* Start;
-    u32 Size;
     u32 Middle; // First End
     u32 Second;
-    u32 SecondEnd;
+    u32 Size;
+    u32 TextSize;
 };
 
-// @TODO : Implement this
 static inline SplitBuffer
 SplitBufferCreate(u32 Size, char* Text, u32 TextSize)
 {
     SplitBuffer SB;
     SB.Size = Size;
+    SB.TextSize = TextSize;
     SB.Start = (char*)AllocateMemory(Size);
     SB.Middle = 0;
     SB.Second = Size/3 * 2;
-    SB.SecondEnd = SB.Second + TextSize;
 
     Memset(Text, SB.Start + SB.Second, TextSize);
     return SB;
 }
 
-//_***********
-//****_*******
+static inline void
+SplitBufferSetCursor(SplitBuffer& SB, u32 CursorPosition)
+{
+    // @TODO: Need to manage gap size based on how much of the buffer is filled
+    // 20 is kind of danger zone
+    Assert(SB.Second - SB.Middle > 20);
+        
+    if(CursorPosition < SB.Middle)
+    {  // Cursor moved backwards 
+        u32 Diff = SB.Middle - CursorPosition;
+        SB.Middle -= Diff;
+        SB.Second -= Diff;
+        Memset(SB.Start + SB.Middle, SB.Start + SB.Second, Diff);
+    }
+    else
+    { // Cursor moved forwards
+        u32 Diff = CursorPosition - SB.Middle;
+        Memset(SB.Start + SB.Second, SB.Start + SB.Middle, Diff);
+        SB.Middle += Diff;
+        SB.Second += Diff;
+    }
+}
 
 static inline void
-SplitBufferSplit(SplitBuffer& SB, u32 CursorPosition)
+SplitBufferAddChar(SplitBuffer& SB, char Character)
 {
-    s32 Diff = CursorPosition - SB.Middle;
-    SB.Middle = CursorPosition;
-    SB.Second += Diff;
-    Memset(SB.Start, SB.Start + SB.Second, CursorPosition + 1);
+    SB.Start[SB.Middle] = Character;
+    SB.Middle += 1;
+    SB.TextSize += 1;
+}
+
+static inline void
+SplitBufferRemoveCharDeleteKey(SplitBuffer& SB)
+{
+    if(SB.Second < SB.Size && SB.Middle < SB.TextSize) {
+        SB.Second += 1;
+        SB.TextSize -= 1;
+    }
+}
+
+static inline void
+SplitBufferRemoveCharBackKey(SplitBuffer& SB)
+{
+    if(SB.Middle > 0) {
+        SB.Middle -= 1;
+        SB.TextSize -= 1;
+    }
+}
+
+static CalculateLinesResult
+CalculateLinesSB(TextBox Box, FrameArena* Arena, SplitBuffer& SB)
+{
+    // TODO : This size should be calculated by counting how many there are in the text.
+    // Now I calculate all the text so maybe I need to only consider text that is on the screen.
+    Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(Line));
+
+    u32 LinesIndex = 0;
+    u32 LineStart = 0;
+
+    char* Text = SB.Start;
+
+    u32 Index = 0;
+    for(u32 I = 0; I < SB.Second + (SB.TextSize - SB.Middle); ++I)
+    {
+        if(I == SB.Middle)
+        {
+            I = SB.Second - 1;
+            continue;
+        }
+        
+        if(Text[I] == '\n')
+        {
+            Lines[LinesIndex].StartIndex = LineStart;
+            Lines[LinesIndex].EndIndex   = Index;
+            LinesIndex += 1;
+            LineStart = Index + 1;
+        }
+        if(Index == SB.TextSize - 1)
+        {
+            Lines[LinesIndex].StartIndex = LineStart;
+            Lines[LinesIndex].EndIndex   = Index + 1;
+            LinesIndex += 1;
+        }
+        
+        Index += 1;
+    }
+
+    CalculateLinesResult Result = {};
+    Result.Lines = Lines;
+    Result.Count = LinesIndex;
+    
+    return Result;
 }

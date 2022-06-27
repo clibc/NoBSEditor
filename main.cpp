@@ -126,8 +126,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n}";
     strcpy_s(Text, FillText);
     TextSize += (u32)strlen(FillText);
-    CalculateLinesResult Lines = CalculateLines(Box, &Arena, Text, TextSize);
     SplitBuffer SB = SplitBufferCreate(1024, Text, TextSize);
+    CalculateLinesResult Lines = CalculateLinesSB(Box, &Arena, SB);
     
     MSG Msg;
 
@@ -140,11 +140,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         {
             if((Msg.lParam & (1 << 30)) == 0) 
             {
-                // Key down
-                if(Msg.wParam == 'K') 
-                {
-                    DebugLog("%c \n", Text[Lines.Lines[CursorY].StartIndex + CursorX]);
-                }
             }
             else 
             {
@@ -160,47 +155,36 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 u32 LineCount = Max(0, Lines.Count - 1);
                 CursorY = Clamp(CursorY - 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
             }
             else if (Msg.wParam == VK_DOWN)
             {
                 u32 LineCount = Max(0, Lines.Count - 1);
                 CursorY = Clamp(CursorY + 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
             }
             else if (Msg.wParam == VK_LEFT)
             {
-                CursorMoveLeft(CursorX, CursorY, Lines);
+                // @TODO: SplitBufferSetCursor() only when user types
+                CursorMoveLeft(&CursorX, &CursorY, Lines);
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
             }
             else if (Msg.wParam == VK_RIGHT)
             {
-                CursorMoveRight(CursorX, CursorY, Lines);
+                CursorMoveRight(&CursorX, &CursorY, Lines);
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
             }
             else if (Msg.wParam == VK_DELETE) 
             {
-                s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
-                if(EditingIndex < TextSize) 
-                {
-                    TextSize -= 1;
-                    for(s32 i = EditingIndex; i < TextSize; ++i) 
-                    {
-                        Text[i] = Text[i+1];
-                    }
-                    CursorMoveRight(CursorX, CursorY, Lines);
-                    CursorMoveLeft(CursorX, CursorY, Lines);
-                }
+                 SplitBufferRemoveCharDeleteKey(SB);
             }
             else if (Msg.wParam == VK_BACK) 
             {
-                s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
-                if(EditingIndex > 0) 
-                {
-                    TextSize -= 1;
-                    for(s32 i = EditingIndex - 1; i < TextSize; ++i) 
-                    {
-                        Text[i] = Text[i+1];
-                    }
-                    CursorMoveLeft(CursorX, CursorY, Lines);
-                }
+                SplitBufferRemoveCharBackKey(SB);
+                CursorMoveLeft(&CursorX, &CursorY, Lines);
             }
             else 
             {
@@ -211,28 +195,18 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         else if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) 
         {
             u8 Char = (u8)Msg.wParam;
-            s32 EditingIndex = Lines.Lines[CursorY].StartIndex + CursorX;
+
             if(Char >= 32 && Char <= 126) 
             {
-                TextSize++;
                 CursorX += 1;
             }
             else if (Char == '\n' || Char == '\r') 
             {
                 Char = '\n';
-                TextSize++;
                 CursorY += 1;
                 CursorX = 0;
             }
-            // shift text by 1
-            char OldChar = Text[EditingIndex];
-            for(s32 i = EditingIndex + 1; i < TextSize + 1; ++i) 
-            {
-                char NewOld = Text[i];
-                Text[i] = OldChar;
-                OldChar = NewOld;
-            }
-            Text[EditingIndex] = Char;
+            SplitBufferAddChar(SB, Char);
         }
         else 
         {
@@ -242,15 +216,15 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        Lines = CalculateLines(Box, &Arena, Text, TextSize);
-
+        Lines = CalculateLinesSB(Box, &Arena, SB);
+        
         v2 CursorPositionVector = v2((f32)CursorX, (f32)CursorY);
         CursorDraw(Box, &Arena, CursorPositionVector, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
-        TextBoxPushText(RenderState, Text, 4, v3(0,1,0));
-        TextBoxPushText(RenderState, Text+4, 4, v3(1,0,1));
-        TextBoxPushText(RenderState, Text+8, TextSize-8, v3(1,0,0));
+
+        TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,1,1));
+        TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, v3(1,1,1));
         TextBoxEndDraw(RenderState);
         
         glFlush();

@@ -20,9 +20,9 @@ typedef double f64;
 
 #define DebugLog(...)                        \
     {                                                                   \
-        char temp[200] = {};                                            \
-        DWORD Size = sprintf_s(temp, __VA_ARGS__);                        \
-        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), temp, Size, NULL, NULL); \
+        char ___temp[200] = {};                                         \
+        DWORD ___Size = sprintf_s(___temp, __VA_ARGS__);                \
+        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), ___temp, ___Size, NULL, NULL); \
     }                                               
 
 #define WarnIfNot(a)                                          \
