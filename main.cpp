@@ -100,9 +100,11 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     glGenBuffers(1, &CursorVBO);
     glBindBuffer(GL_ARRAY_BUFFER, CursorVBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), (void*)sizeof(v3));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), (void*)sizeof(v3));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), (void*)(sizeof(v3) + sizeof(v4)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     glUseProgram(TextShader);
     s32 OrthoMatrixLocation = glGetUniformLocation(TextShader, "OrthoMatrix");
@@ -128,20 +130,26 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     TextSize += (u32)strlen(FillText);
     SplitBuffer SB = SplitBufferCreate(1024, Text, TextSize);
     CalculateLinesResult Lines = CalculateLinesSB(Box, &Arena, SB);
-    
-    MSG Msg;
 
     s32 CursorX = 0;
     s32 CursorY = 0;
-
+    // TODO : Store secondary cursor position in 'Text Space'
+    s32 SCursorX = 0;
+    s32 SCursorY = 0;
     bool IsCursorMoved = false;
 
+    MSG Msg;
     while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) 
     {
         if(Msg.message == WM_KEYDOWN) 
         {
             if((Msg.lParam & (1 << 30)) == 0) 
             {
+                if(Msg.wParam == VK_SHIFT)
+                {
+                    SCursorX = CursorX;
+                    SCursorY = CursorY;
+                }
             }
             else 
             {
@@ -231,8 +239,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         Lines = CalculateLinesSB(Box, &Arena, SB);
         
-        v2 CursorPositionVector = v2(f32(CursorX), f32(CursorY));
-        CursorDraw(Box, &Arena, CursorPositionVector, CursorVAO, CursorVBO, CursorShader);
+        CursorDraw(Box, &Arena, v2(f32(CursorX), f32(CursorY)), 0.0f, CursorVAO, CursorVBO, CursorShader);
+        CursorDraw(Box, &Arena, v2(f32(SCursorX), f32(SCursorY)), 1.0f, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
 

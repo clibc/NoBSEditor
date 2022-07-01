@@ -319,7 +319,8 @@ struct Vertex
 struct CursorVertex
 {
     v3 Position;
-    v3 Color;
+    v4 Color; // W component is cursor ID (primary, secondary)
+    v2 UV;
 };
 
 static inline v3
@@ -436,7 +437,7 @@ TextBoxEndDraw(TextBoxRenderState& State)
 }
 
 static inline void
-CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, u32 VAO, u32 VBO, u32 Shader)
+CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, float CursorID, u32 VAO, u32 VBO, u32 Shader)
 {
     Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
 
@@ -444,24 +445,30 @@ CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, u32 VAO, u32 VBO, 
     u32 BatchCurrentIndex = 0;
 
     CursorVertex V;
-    V.Color = v3(1, 1, 0);
-        
+    V.Color = v4(1, 1, 0, CursorID);
+
     V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
+    V.UV = CharTopRight;
     BatchMemory[BatchCurrentIndex++] = V;
 
     V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotLeft);
+    V.UV = CharBotLeft;
     BatchMemory[BatchCurrentIndex++] = V;
 
     V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotRight);
+    V.UV = CharBotRight;
     BatchMemory[BatchCurrentIndex++] = V;
 
     V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
+    V.UV = CharTopRight;
     BatchMemory[BatchCurrentIndex++] = V;
 
     V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopLeft);
+    V.UV = CharTopLeft;
     BatchMemory[BatchCurrentIndex++] = V;
 
     V.Position = TextBoxVertexPosition(Box, CursorPosition, CharBotLeft);
+    V.UV = CharBotLeft;
     BatchMemory[BatchCurrentIndex++] = V;
 
     glUseProgram(Shader);
