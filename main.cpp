@@ -11,6 +11,7 @@
 #include "math.hpp"
 #include "opengl.hpp"
 #include "utils.hpp"
+#include "input.hpp"
 
 #define WINDOW_WIDTH  800
 #define WINDOW_HEIGHT 600
@@ -137,84 +138,82 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     u32 SecondaryCursorPos = 0;
     bool IsCursorMoved = false;
 
+    InputHandle Input;
     MSG Msg;
-    while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) 
+    while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running)
     {
-        if(Msg.message == WM_KEYDOWN) 
+        ProcessInputWin32(&Input, Msg);
+
+        if(GetKeyDown(Input, KeyCode_Escape))
         {
-            if((Msg.lParam & (1 << 30)) == 0) 
-            {
-                if(Msg.wParam == VK_SHIFT)
-                {
-                    SecondaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
-                }
-            }
-            else 
-            {
-                // Key hold down
-            }
+            Is_Running = false;
+        }
 
-            if(Msg.wParam == VK_ESCAPE)
-            {
-                Is_Running = false;
-            }
-            else if(Msg.wParam == VK_UP)
-            {
-                u32 LineCount = Max(0, Lines.Count - 1);
-                CursorY = Clamp(CursorY - 1, 0, LineCount);
-                CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
-                IsCursorMoved = true;
-            }
-            else if (Msg.wParam == VK_DOWN)
-            {
-                u32 LineCount = Max(0, Lines.Count - 1);
-                CursorY = Clamp(CursorY + 1, 0, LineCount);
-                CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
-                IsCursorMoved = true;
-            }
-            else if (Msg.wParam == VK_LEFT)
-            {
-                CursorMoveLeft(&CursorX, &CursorY, Lines);
-                IsCursorMoved = true;
-            }
-            else if (Msg.wParam == VK_RIGHT)
-            {
-                CursorMoveRight(&CursorX, &CursorY, Lines);
-                IsCursorMoved = true;
-            }
-            else if (Msg.wParam == VK_DELETE) 
-            {
-                if(IsCursorMoved)
-                {
-                    SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
-                }
-                SplitBufferRemoveCharDeleteKey(SB);
+        if(GetKeyDown(Input, KeyCode_Shift))
+        {
+            SecondaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
+        }
 
-                if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
-                {
-                    SecondaryCursorPos -= 1;
-                }
-            }
-            else if (Msg.wParam == VK_BACK) 
-            {             
-                if(IsCursorMoved)
-                {
-                    SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
-                }
-                SplitBufferRemoveCharBackKey(SB);
-                CursorMoveLeft(&CursorX, &CursorY, Lines);
-                if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
-                {
-                    SecondaryCursorPos -= 1;
-                }
-            }
-            else
+        if(GetKey(Input, KeyCode_Up))
+        {
+            u32 LineCount = Max(0, Lines.Count - 1);
+            CursorY = Clamp(CursorY - 1, 0, LineCount);
+            CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+            IsCursorMoved = true;
+        }
+        else if(GetKey(Input, KeyCode_Down))
+        {
+            u32 LineCount = Max(0, Lines.Count - 1);
+            CursorY = Clamp(CursorY + 1, 0, LineCount);
+            CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+            IsCursorMoved = true;
+        }
+        else if(GetKey(Input, KeyCode_Left))
+        {
+            CursorMoveLeft(&CursorX, &CursorY, Lines);
+            IsCursorMoved = true;
+        }
+        else if(GetKey(Input, KeyCode_Right))
+        {
+            CursorMoveRight(&CursorX, &CursorY, Lines);
+            IsCursorMoved = true;
+        }
+        else if(GetKey(Input, KeyCode_Delete))
+        {
+            if(IsCursorMoved)
             {
-                // We do this way because '.' character and VK_DELETE have the same key code (IDK why) 
-                TranslateMessage(&Msg);
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+            }
+            SplitBufferRemoveCharDeleteKey(SB);
+
+            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+            {
+                SecondaryCursorPos -= 1;
             }
         }
-        else if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) 
+        else if(GetKey(Input, KeyCode_Backspace))
+        {
+            if(IsCursorMoved)
+            {
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+            }
+            SplitBufferRemoveCharBackKey(SB);
+            CursorMoveLeft(&CursorX, &CursorY, Lines);
+            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+            {
+                SecondaryCursorPos -= 1;
+            }
+        }
+
+        if(GetKey(Input, KeyCode_Ctrl))
+        {
+        }
+        if(GetKeyDown(Input, KeyCode_C))
+        {
+            DebugLog("Copy\n");
+        }
+            
+        if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) 
         {
             u8 Char = (u8)Msg.wParam;
 
@@ -240,11 +239,15 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 SecondaryCursorPos += 1;
             }
         }
-        else 
+        
+        if(GetKey(Input, KeyCode_Ctrl))
         {
-            DispatchMessage(&Msg);
+            if(GetKeyDown(Input, KeyCode_C))
+            {
+                DebugLog("Copy\n");
+            }
         }
-
+        
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
