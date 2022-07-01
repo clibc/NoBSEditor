@@ -656,7 +656,7 @@ static inline void
 SplitBufferSetCursor(SplitBuffer& SB, u32 CursorPosition)
 {
     // @TODO: Need to manage gap size based on how much of the buffer is filled
-    // 20 is kind of danger zone
+    // 20 is danger zone for now
     Assert(SB.Second - SB.Middle > 20);
         
     if(CursorPosition < SB.Middle)

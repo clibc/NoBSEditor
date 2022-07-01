@@ -103,7 +103,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), (void*)sizeof(v3));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
-    
+
     glUseProgram(TextShader);
     s32 OrthoMatrixLocation = glGetUniformLocation(TextShader, "OrthoMatrix");
     s32 OrthoMatrixLocationCursor = glGetUniformLocation(CursorShader, "OrthoMatrix");
@@ -121,7 +121,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     FrameArena Arena = FrameArenaCreate(Megabytes(2));
     
-    TextBox Box = { WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
+    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n}";
     strcpy_s(Text, FillText);
@@ -133,6 +133,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     s32 CursorX = 0;
     s32 CursorY = 0;
+
+    bool IsCursorMoved = false;
 
     while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running) 
     {
@@ -155,34 +157,39 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 u32 LineCount = Max(0, Lines.Count - 1);
                 CursorY = Clamp(CursorY - 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
-
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                IsCursorMoved = true;
             }
             else if (Msg.wParam == VK_DOWN)
             {
                 u32 LineCount = Max(0, Lines.Count - 1);
                 CursorY = Clamp(CursorY + 1, 0, LineCount);
                 CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
-
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                IsCursorMoved = true;
             }
             else if (Msg.wParam == VK_LEFT)
             {
-                // @TODO: SplitBufferSetCursor() only when user types
                 CursorMoveLeft(&CursorX, &CursorY, Lines);
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                IsCursorMoved = true;
             }
             else if (Msg.wParam == VK_RIGHT)
             {
                 CursorMoveRight(&CursorX, &CursorY, Lines);
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                IsCursorMoved = true;
             }
             else if (Msg.wParam == VK_DELETE) 
             {
-                 SplitBufferRemoveCharDeleteKey(SB);
+                if(IsCursorMoved)
+                {
+                    SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                }
+                SplitBufferRemoveCharDeleteKey(SB);
             }
             else if (Msg.wParam == VK_BACK) 
-            {
+            {             
+                if(IsCursorMoved)
+                {
+                    SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                }
                 SplitBufferRemoveCharBackKey(SB);
                 CursorMoveLeft(&CursorX, &CursorY, Lines);
             }
@@ -196,17 +203,23 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         {
             u8 Char = (u8)Msg.wParam;
 
+            if(IsCursorMoved)
+            {
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+            }
+
             if(Char >= 32 && Char <= 126) 
             {
                 CursorX += 1;
             }
-            else if (Char == '\n' || Char == '\r') 
+            else if (Char == '\n' || Char == '\r')
             {
                 Char = '\n';
                 CursorY += 1;
                 CursorX = 0;
             }
             SplitBufferAddChar(SB, Char);
+            IsCursorMoved = false;
         }
         else 
         {
@@ -218,12 +231,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         Lines = CalculateLinesSB(Box, &Arena, SB);
         
-        v2 CursorPositionVector = v2((f32)CursorX, (f32)CursorY);
+        v2 CursorPositionVector = v2(f32(CursorX), f32(CursorY));
         CursorDraw(Box, &Arena, CursorPositionVector, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
 
-        TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,1,1));
+        TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,0,1));
         TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, v3(1,1,1));
         TextBoxEndDraw(RenderState);
         
