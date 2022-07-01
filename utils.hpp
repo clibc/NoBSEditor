@@ -363,6 +363,28 @@ TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u3
     return S;
 }
 
+static inline v2
+CursorTextToScreen(const CalculateLinesResult* Lines, u32 CursorPosition)
+{
+    v2 OutPosition = v2(-1,-1);
+    for(u32 i = 0; i < Lines->Count; ++i)
+    {
+        if(CursorPosition >= Lines->Lines[i].StartIndex && CursorPosition <= Lines->Lines[i].EndIndex)
+        {
+            OutPosition.x = f32(CursorPosition - Lines->Lines[i].StartIndex);
+            OutPosition.y = f32(i);
+        }
+    }
+    return OutPosition;
+}
+
+static inline u32
+CursorScreenToText(const CalculateLinesResult* Lines, u32 CursorX, u32 CursorY)
+{
+    return Lines->Lines[CursorY].StartIndex + CursorX;
+}
+
+
 static inline void
 TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
 {
@@ -370,7 +392,6 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
     
     Vertex* BatchMemory = (Vertex*)State.ArenaMemory;
     TextBox Box = State.Box;
-    Line* Lines = State.Lines->Lines;
 
     s32 StartPosition = State.CursorPosition;
     
@@ -381,20 +402,9 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
             State.CursorPosition++;
             continue;
         }
+
+        v2 CursorPosition = CursorTextToScreen(State.Lines, j + StartPosition);
         
-        u32 i;
-        for(i = 0; i < State.Lines->Count; ++i)
-        {
-            if(j + StartPosition >= Lines[i].StartIndex && j + StartPosition < Lines[i].EndIndex)
-            {
-                break;
-            }
-        }
-
-        v2 CursorPosition;
-        CursorPosition.x = (f32)(StartPosition + j - Lines[i].StartIndex);
-        CursorPosition.y = (f32)i;
-
         Vertex V;
         V.Color = TextColor;
         

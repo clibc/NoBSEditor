@@ -134,8 +134,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     s32 CursorX = 0;
     s32 CursorY = 0;
     // TODO : Store secondary cursor position in 'Text Space'
-    s32 SCursorX = 0;
-    s32 SCursorY = 0;
+    u32 SecondaryCursorPos = 0;
     bool IsCursorMoved = false;
 
     MSG Msg;
@@ -147,8 +146,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 if(Msg.wParam == VK_SHIFT)
                 {
-                    SCursorX = CursorX;
-                    SCursorY = CursorY;
+                    SecondaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
                 }
             }
             else 
@@ -191,6 +189,11 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
                 }
                 SplitBufferRemoveCharDeleteKey(SB);
+
+                if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+                {
+                    SecondaryCursorPos -= 1;
+                }
             }
             else if (Msg.wParam == VK_BACK) 
             {             
@@ -200,8 +203,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 }
                 SplitBufferRemoveCharBackKey(SB);
                 CursorMoveLeft(&CursorX, &CursorY, Lines);
+                if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+                {
+                    SecondaryCursorPos -= 1;
+                }
             }
-            else 
+            else
             {
                 // We do this way because '.' character and VK_DELETE have the same key code (IDK why) 
                 TranslateMessage(&Msg);
@@ -228,6 +235,10 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
             SplitBufferAddChar(SB, Char);
             IsCursorMoved = false;
+            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+            {
+                SecondaryCursorPos += 1;
+            }
         }
         else 
         {
@@ -238,9 +249,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClear(GL_COLOR_BUFFER_BIT);
 
         Lines = CalculateLinesSB(Box, &Arena, SB);
-        
+        v2 SecondaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
         CursorDraw(Box, &Arena, v2(f32(CursorX), f32(CursorY)), 0.0f, CursorVAO, CursorVBO, CursorShader);
-        CursorDraw(Box, &Arena, v2(f32(SCursorX), f32(SCursorY)), 1.0f, CursorVAO, CursorVBO, CursorShader);
+        CursorDraw(Box, &Arena, SecondaryCursorScreenPosition, 1.0f, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
 
