@@ -87,6 +87,10 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
             State = UP;
         }
     }
+    else
+    {
+        memset(Keys, 1, KeyCode_Count);
+    }
 
     // TODO: We need get rid of this translate message thing
     // it messes up the message queue

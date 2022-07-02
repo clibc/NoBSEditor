@@ -204,15 +204,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 SecondaryCursorPos -= 1;
             }
         }
-
-        if(GetKey(Input, KeyCode_Ctrl))
-        {
-        }
-        if(GetKeyDown(Input, KeyCode_C))
-        {
-            DebugLog("Copy\n");
-        }
-            
+           
         if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) 
         {
             u8 Char = (u8)Msg.wParam;
@@ -242,7 +234,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         
         if(GetKey(Input, KeyCode_Ctrl))
         {
-            if(GetKeyDown(Input, KeyCode_C))
+            if(GetKeyUp(Input, KeyCode_C))
             {
                 DebugLog("Copy\n");
             }
