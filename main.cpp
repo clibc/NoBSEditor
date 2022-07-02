@@ -139,10 +139,10 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     bool IsCursorMoved = false;
 
     InputHandle Input;
-    MSG Msg;
-    while(GetMessage(&Msg, NULL, 0, 0) > 0 && Is_Running)
+    MSG M;
+    while(GetMessage(&M, NULL, WM_KEYFIRST, WM_KEYLAST) > 0 && Is_Running)
     {
-        ProcessInputWin32(&Input, Msg);
+        ProcessInputWin32(&Input, M);
 
         if(GetKeyDown(Input, KeyCode_Escape))
         {
@@ -205,9 +205,9 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
         }
            
-        if(Msg.message == WM_CHAR && Msg.wParam != VK_BACK) 
+        if(M.message == WM_CHAR && M.wParam != VK_BACK) 
         {
-            u8 Char = (u8)Msg.wParam;
+            u8 Char = (u8)M.wParam;
 
             if(IsCursorMoved)
             {
@@ -234,9 +234,13 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         
         if(GetKey(Input, KeyCode_Ctrl))
         {
-            if(GetKeyUp(Input, KeyCode_C))
+            if(GetKeyDown(Input, KeyCode_C))
             {
                 DebugLog("Copy\n");
+            }
+            if(GetKeyDown(Input, KeyCode_V))
+            {
+                DebugLog("Paste\n");
             }
         }
         

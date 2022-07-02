@@ -70,7 +70,7 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     KeyState State = NONE;
     
     if(M.message == WM_KEYDOWN || M.message == WM_SYSKEYDOWN
-       || M.message == WM_KEYUP || M.message == WM_SYSKEYUP)
+       || M.message == WM_KEYUP || M.message == WM_SYSKEYUP || M.message == WM_CHAR)
     {
         bool WasDown = (HIWORD(M.lParam) & KF_REPEAT) == KF_REPEAT;
         bool IsUp = (HIWORD(M.lParam) & KF_UP) == KF_UP;
@@ -87,16 +87,10 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
             State = UP;
         }
     }
-    else
-    {
-        memset(Keys, 1, KeyCode_Count);
-    }
 
-    // TODO: We need get rid of this translate message thing
-    // it messes up the message queue
     TranslateMessage(&M);
     DispatchMessage(&M);
-    
+
     if(M.wParam == 'A')
     {
         Keys[KeyCode_A] = State;
@@ -108,6 +102,7 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     else if(M.wParam == 'C')
     {
         Keys[KeyCode_C] = State;
+        DebugLog("C is %i\n", State);
     }
     else if(M.wParam == 'D')
     {
