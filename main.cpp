@@ -19,9 +19,7 @@
 static bool Is_Running = true;
 HDC Device_Context;
 
-#define MAX_CHARACTER_BUFFER 1000
 #define MAX_CLIPBOARD_BUFFER 1000
-static char Text[MAX_CHARACTER_BUFFER];
 static char Clipboard[MAX_CLIPBOARD_BUFFER];
 static s32 TextSize = 0;
 static s32 ClipboardSize = 0;
@@ -82,6 +80,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     f32 CharAspectRatio = 16.0f/30.0f;
     v3 Scale = v3(12, 30, 1);
     Scale.y = Scale.x / CharAspectRatio;
+    v3 TextColor = v3(51, 82, 59) / 200.0f;
 
     GLuint TextShader   = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
     GLuint CursorShader = LoadShaderFromFiles("../shaders/cursor_vertex.shader", "../shaders/cursor_frag.shader");
@@ -130,9 +129,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n}";
-    strcpy_s(Text, FillText);
-    TextSize += (u32)strlen(FillText);
-    SplitBuffer SB = SplitBufferCreate(1024, Text, TextSize);
+    SplitBuffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
     CalculateLinesResult Lines = CalculateLinesSB(Box, &Arena, SB);
 
     s32 CursorX = 0;
@@ -435,7 +432,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
 
         TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,0,1));
-        TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, v3(1,1,1));
+        TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, TextColor);
         TextBoxEndDraw(RenderState);
         
         glFlush();
