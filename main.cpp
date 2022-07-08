@@ -21,7 +21,9 @@ HDC Device_Context;
 
 #define MAX_CHARACTER_BUFFER 1000
 static char Text[MAX_CHARACTER_BUFFER];
-static s32  TextSize = 0;
+static char Clipboard[100];
+static s32 TextSize = 0;
+static s32 ClipboardSize = 0;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 {
@@ -134,7 +136,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     s32 CursorX = 0;
     s32 CursorY = 0;
-    // TODO : Store secondary cursor position in 'Text Space'
+
     u32 SecondaryCursorPos = 0;
     bool IsCursorMoved = false;
 
@@ -149,10 +151,32 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             Is_Running = false;
         }
 
-        if(GetKeyDown(Input, KeyCode_Shift))
+        if(M.message == WM_CHAR && M.wParam != VK_BACK) 
         {
-            SecondaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
-        }
+            u8 Char = (u8)M.wParam;
+
+            if(IsCursorMoved)
+            {
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+            }
+
+            if(Char >= 32 && Char <= 126) 
+            {
+                CursorX += 1;
+            }
+            else if (Char == '\n' || Char == '\r')
+            {
+                Char = '\n';
+                CursorY += 1;
+                CursorX = 0;
+            }
+            SplitBufferAddChar(SB, Char);
+            IsCursorMoved = false;
+            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+            {
+                SecondaryCursorPos += 1;
+            }
+        }        
 
         if(GetKey(Input, KeyCode_Up))
         {
@@ -197,6 +221,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
             }
+            
             SplitBufferRemoveCharBackKey(SB);
             CursorMoveLeft(&CursorX, &CursorY, Lines);
             if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
@@ -210,39 +235,67 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if(GetKeyDown(Input, KeyCode_C))
             {
                 DebugLog("Copy\n");
+
+                u32 PrimaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
+                
+                u32 CopyTextSize = 0;
+
+                if(PrimaryCursorPos <= SB.Middle && SecondaryCursorPos <= SB.Middle) // Both in first segment
+                {
+                    if(PrimaryCursorPos > SecondaryCursorPos) // Primary is ahead of Secondary
+                    {
+                        CopyTextSize = PrimaryCursorPos - SecondaryCursorPos;
+                        Memcpy(SB.Start + SecondaryCursorPos, Clipboard, CopyTextSize);
+                    }
+                    else // Secondary is ahead of Primary
+                    {
+                        CopyTextSize = SecondaryCursorPos - PrimaryCursorPos;
+                        Memcpy(SB.Start + PrimaryCursorPos, Clipboard, CopyTextSize);
+                    }
+                }
+                else if (PrimaryCursorPos >= SB.Middle && SecondaryCursorPos <= SB.Middle) // Primary is in second, Secondary is in first
+                {
+                    CopyTextSize = SB.Middle - SecondaryCursorPos;
+                    Memcpy(SB.Start + SecondaryCursorPos, Clipboard, CopyTextSize);
+                    Memcpy(SB.Start + SB.Second, Clipboard + CopyTextSize, (PrimaryCursorPos + (SB.Second - SB.Middle)) - SB.Second);
+                    CopyTextSize += (PrimaryCursorPos + (SB.Second - SB.Middle)) - SB.Second;
+                }
+                else if (PrimaryCursorPos <= SB.Middle && SecondaryCursorPos >= SB.Middle) // Primary is in first, Secondary is in second
+                {
+                    CopyTextSize = SB.Middle - PrimaryCursorPos;
+                    Memcpy(SB.Start + PrimaryCursorPos, Clipboard, CopyTextSize);
+                    Memcpy(SB.Start + SB.Second, Clipboard + CopyTextSize, (SecondaryCursorPos + (SB.Second - SB.Middle)) - SB.Second);
+                    CopyTextSize += (SecondaryCursorPos + (SB.Second - SB.Middle)) - SB.Second;
+                }
+                else if (PrimaryCursorPos >= SB.Middle && SecondaryCursorPos >= SB.Middle) // Both in second segment
+                {
+                    u32 Primary   = (PrimaryCursorPos + (SB.Second - SB.Middle));
+                    u32 Secondary = (SecondaryCursorPos + (SB.Second - SB.Middle));
+                    
+                    if(Primary > Secondary) // Primary is ahead of Secondary
+                    {
+                        CopyTextSize = Primary - Secondary;
+                        Memcpy(SB.Start + Secondary, Clipboard, CopyTextSize);
+                    }
+                    else // Secondary is ahead of Primary
+                    {
+                        CopyTextSize = Secondary - Primary;
+                        Memcpy(SB.Start + Primary, Clipboard, CopyTextSize);
+                    }
+                }
+                ClipboardSize = CopyTextSize;
+                Clipboard[ClipboardSize] = 0;
+                DebugLog("%s\n", Clipboard);
             }
-            if(GetKeyDown(Input, KeyCode_V))
+            else if(GetKeyDown(Input, KeyCode_V))
             {
                 DebugLog("Paste\n");
             }
+            else if(GetKeyDown(Input, KeyCode_Space))
+            {
+                SecondaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
+            }
         }
-
-        if(M.message == WM_CHAR && M.wParam != VK_BACK) 
-        {
-            u8 Char = (u8)M.wParam;
-
-            if(IsCursorMoved)
-            {
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
-            }
-
-            if(Char >= 32 && Char <= 126) 
-            {
-                CursorX += 1;
-            }
-            else if (Char == '\n' || Char == '\r')
-            {
-                Char = '\n';
-                CursorY += 1;
-                CursorX = 0;
-            }
-            SplitBufferAddChar(SB, Char);
-            IsCursorMoved = false;
-            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
-            {
-                SecondaryCursorPos += 1;
-            }
-        }        
         
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);

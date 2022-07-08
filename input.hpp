@@ -42,6 +42,7 @@ enum KeyCode
     KeyCode_Delete,
     KeyCode_Backspace,
     KeyCode_Ctrl,
+    KeyCode_Space,
 
     KeyCode_Up,
     KeyCode_Down,
@@ -101,7 +102,18 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
         return;
     }
 
-
+    for(s32 I = 0; I < KeyCode_Count; ++I)
+    {
+        if(Keys[I] == DOWN)
+        {
+            Keys[I] = PRESSED;
+        }
+        else if(Keys[I] == UP)
+        {
+            Keys[I] = NONE;
+        }
+    }
+    
     if(M.wParam == 'A')
     {
         Keys[KeyCode_A] = State;
@@ -241,6 +253,10 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     else if(M.wParam == VK_CONTROL)
     {
         Keys[KeyCode_Ctrl] = State;
+    }
+    else if(M.wParam == VK_SPACE)
+    {
+        Keys[KeyCode_Space] = State;
     }
 }
 

@@ -39,7 +39,7 @@ AllocateMemory(u64 Size)
 }
 
 static void
-Memset(void* Source, void* Dest, u32 Size)
+Memcpy(void* Source, void* Dest, u32 Size)
 {
     for(u32 i = 0; i < Size; ++i)
     {
@@ -665,7 +665,7 @@ SplitBufferCreate(u32 Size, char* Text, u32 TextSize)
     SB.Middle = 0;
     SB.Second = Size/3 * 2;
 
-    Memset(Text, SB.Start + SB.Second, TextSize);
+    Memcpy(Text, SB.Start + SB.Second, TextSize);
     return SB;
 }
 
@@ -681,12 +681,12 @@ SplitBufferSetCursor(SplitBuffer& SB, u32 CursorPosition)
         u32 Diff = SB.Middle - CursorPosition;
         SB.Middle -= Diff;
         SB.Second -= Diff;
-        Memset(SB.Start + SB.Middle, SB.Start + SB.Second, Diff);
+        Memcpy(SB.Start + SB.Middle, SB.Start + SB.Second, Diff);
     }
     else
     { // Cursor moved forwards
         u32 Diff = CursorPosition - SB.Middle;
-        Memset(SB.Start + SB.Second, SB.Start + SB.Middle, Diff);
+        Memcpy(SB.Start + SB.Second, SB.Start + SB.Middle, Diff);
         SB.Middle += Diff;
         SB.Second += Diff;
     }
