@@ -171,11 +171,27 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 CursorY += 1;
                 CursorX = 0;
             }
-            SplitBufferAddChar(SB, Char);
+
+            u32 SecondaryAnvanceAmount = 1;
+            
+            if(Char == '\t') // so only spaces supported lol
+            {
+                SplitBufferAddChar(SB, ' ');
+                SplitBufferAddChar(SB, ' ');
+                SplitBufferAddChar(SB, ' ');
+                SplitBufferAddChar(SB, ' ');
+                CursorX += 4;
+                SecondaryAnvanceAmount = 4;
+            }
+            else
+            {
+                SplitBufferAddChar(SB, Char);
+            }
+            
             IsCursorMoved = false;
             if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
             {
-                SecondaryCursorPos += 1;
+                SecondaryCursorPos += SecondaryAnvanceAmount;
             }
         }        
 
@@ -288,11 +304,12 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 Clipboard[ClipboardSize] = 0;
                 //DebugLog("%s\n", Clipboard);
             }
-            else if(GetKeyDown(Input, KeyCode_V))
+            else if(GetKeyDown(Input, KeyCode_Y))
             {
                 DebugLog("Paste\n");
 
-                SplitBufferSetCursor(SB, CursorScreenToText(&Lines, CursorX, CursorY));
+                SecondaryCursorPos = CursorScreenToText(&Lines, CursorX, CursorY);
+                SplitBufferSetCursor(SB, SecondaryCursorPos);
                 Memcpy(Clipboard, SB.Start + SB.Middle, ClipboardSize);
                 SB.Middle += ClipboardSize; // TODO: Handle buffer collisions
                 SB.TextSize += ClipboardSize; // TODO: Handle buffer collisions
@@ -375,7 +392,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     }
                 }
 
-                // update screen poition
+                // update screen poition && secondary cursor position
+                SecondaryCursorPos = SB.Middle;
                 v2 NewCursorPos = CursorTextToScreen(&Lines, SB.Middle);
                 CursorX = TruncateF32ToS32(NewCursorPos.x);
                 CursorY = TruncateF32ToS32(NewCursorPos.y);
@@ -389,6 +407,21 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         if(GetKey(Input, KeyCode_Alt) && GetKeyDown(Input, KeyCode_W))
         {
             DebugLog("Alt Copy\n");
+        }
+
+        if(GetKey(Input, KeyCode_Ctrl) && GetKeyDown(Input, KeyCode_P))
+        {
+            DebugLog("CTRL PLUS\n");
+            Scale.x += 1.5f;
+            Scale.y = Scale.x / CharAspectRatio;
+            Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
+        }
+        if(GetKey(Input, KeyCode_Ctrl) && GetKeyDown(Input, KeyCode_M))
+        {
+            DebugLog("CTRL MINUS\n");
+            Scale.x -= 1.5f;
+            Scale.y = Scale.x / CharAspectRatio;
+            Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
         }
         
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
