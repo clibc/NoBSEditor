@@ -43,6 +43,7 @@ enum KeyCode
     KeyCode_Backspace,
     KeyCode_Ctrl,
     KeyCode_Space,
+    KeyCode_Alt,
 
     KeyCode_Up,
     KeyCode_Down,
@@ -58,6 +59,8 @@ struct InputHandle
     bool NewInput = false;
     KeyState* Keys;
 };
+
+// TODO : More robust input system?
 
 static void
 ProcessInputWin32(InputHandle* Input, MSG& M)
@@ -99,18 +102,21 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     {
         DispatchMessage(&M);
         Input->NewInput = false;
-        return;
+        //return;
     }
 
     for(s32 I = 0; I < KeyCode_Count; ++I)
     {
-        if(Keys[I] == DOWN)
-        {
-            Keys[I] = PRESSED;
-        }
-        else if(Keys[I] == UP)
-        {
-            Keys[I] = NONE;
+        if(I != KeyCode_Ctrl && I != KeyCode_Alt)
+        { // CTRL & Alt keys are kinda nasty
+            if(Keys[I] == DOWN)
+            {
+                Keys[I] = NONE;
+            }
+            else if(Keys[I] == UP)
+            {
+                Keys[I] = NONE;
+            }
         }
     }
     
@@ -257,6 +263,10 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     else if(M.wParam == VK_SPACE)
     {
         Keys[KeyCode_Space] = State;
+    }
+    else if(M.wParam == VK_MENU)
+    {
+        Keys[KeyCode_Alt] = State;
     }
 }
 
