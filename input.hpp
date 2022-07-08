@@ -2,7 +2,7 @@
 
 enum KeyState
 {
-    NONE    = 1 << 0,
+    NONE    = 0 << 0,
     DOWN    = 1 << 1,
     PRESSED = 1 << 2,
     UP      = 1 << 3
@@ -54,6 +54,7 @@ enum KeyCode
 struct InputHandle
 {
     bool IsInitialized = false;
+    bool NewInput = false;
     KeyState* Keys;
 };
 
@@ -70,7 +71,7 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     KeyState State = NONE;
     
     if(M.message == WM_KEYDOWN || M.message == WM_SYSKEYDOWN
-       || M.message == WM_KEYUP || M.message == WM_SYSKEYUP || M.message == WM_CHAR)
+       || M.message == WM_KEYUP || M.message == WM_SYSKEYUP)
     {
         bool WasDown = (HIWORD(M.lParam) & KF_REPEAT) == KF_REPEAT;
         bool IsUp = (HIWORD(M.lParam) & KF_UP) == KF_UP;
@@ -86,10 +87,20 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
         {
             State = UP;
         }
+        Input->NewInput = true;
+        
+        if(!(Keys[KeyCode_Ctrl] & (DOWN|PRESSED)))
+        {
+            TranslateMessage(&M);
+        }
+    }
+    else
+    {
+        DispatchMessage(&M);
+        Input->NewInput = false;
+        return;
     }
 
-    TranslateMessage(&M);
-    DispatchMessage(&M);
 
     if(M.wParam == 'A')
     {
@@ -102,7 +113,6 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     else if(M.wParam == 'C')
     {
         Keys[KeyCode_C] = State;
-        DebugLog("C is %i\n", State);
     }
     else if(M.wParam == 'D')
     {
@@ -237,23 +247,27 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
 static inline bool
 GetKeyDown(const InputHandle& Input, KeyCode Key)
 {
+    if(!Input.NewInput) return false;
     return Input.Keys[Key] == DOWN;
 }
 
 static inline bool
 GetKeyUp(const InputHandle& Input, KeyCode Key)
 {
+    if(!Input.NewInput) return false;
     return Input.Keys[Key] == UP;
 }
 
 static inline bool
 GetKeyPressed(const InputHandle& Input, KeyCode Key)
 {
+    if(!Input.NewInput) return false;
     return Input.Keys[Key] == PRESSED;
 }
 
 static inline bool
 GetKey(const InputHandle& Input, KeyCode Key)
 {
+    if(!Input.NewInput) return false;
     return (Input.Keys[Key] & (DOWN|PRESSED)) > 1;
 }

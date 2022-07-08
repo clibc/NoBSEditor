@@ -140,10 +140,10 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     InputHandle Input;
     MSG M;
-    while(GetMessage(&M, NULL, WM_KEYFIRST, WM_KEYLAST) > 0 && Is_Running)
+    while(Is_Running && GetMessage(&M, window_handle, 0,0))
     {
-        ProcessInputWin32(&Input, M);
-
+        ProcessInputWin32(&Input,M);
+        
         if(GetKeyDown(Input, KeyCode_Escape))
         {
             Is_Running = false;
@@ -204,7 +204,19 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 SecondaryCursorPos -= 1;
             }
         }
-           
+
+        if(GetKey(Input, KeyCode_Ctrl))
+        {
+            if(GetKeyDown(Input, KeyCode_C))
+            {
+                DebugLog("Copy\n");
+            }
+            if(GetKeyDown(Input, KeyCode_V))
+            {
+                DebugLog("Paste\n");
+            }
+        }
+
         if(M.message == WM_CHAR && M.wParam != VK_BACK) 
         {
             u8 Char = (u8)M.wParam;
@@ -230,19 +242,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 SecondaryCursorPos += 1;
             }
-        }
-        
-        if(GetKey(Input, KeyCode_Ctrl))
-        {
-            if(GetKeyDown(Input, KeyCode_C))
-            {
-                DebugLog("Copy\n");
-            }
-            if(GetKeyDown(Input, KeyCode_V))
-            {
-                DebugLog("Paste\n");
-            }
-        }
+        }        
         
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
