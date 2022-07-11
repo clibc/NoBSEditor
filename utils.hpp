@@ -126,6 +126,7 @@ struct CalculateLinesResult
 {
     Line* Lines;
     u32   Count;
+    u32 MaxLinesOnScreen;
 };
 
 // Calculates line start/end in a frame
@@ -158,7 +159,8 @@ CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize)
     CalculateLinesResult Result = {};
     Result.Lines = Lines;
     Result.Count = LinesIndex;
-    
+    Result.MaxLinesOnScreen = TruncateF32ToS32(Box.Height / Box.CharacterHeight);
+
     return Result;
 }
 
@@ -364,8 +366,10 @@ TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u3
 }
 
 static inline v2
-CursorTextToScreen(const CalculateLinesResult* Lines, u32 CursorPosition)
+CursorTextToScreen(const CalculateLinesResult* Lines,
+                   u32 CursorPosition)
 {
+    CursorPosition += Lines->Lines[FirstLineIndexOnScreen].StartIndex;
     v2 OutPosition = v2(-1,-1);
     for(u32 i = 0; i < Lines->Count; ++i)
     {
@@ -379,9 +383,26 @@ CursorTextToScreen(const CalculateLinesResult* Lines, u32 CursorPosition)
 }
 
 static inline u32
-CursorScreenToText(const CalculateLinesResult* Lines, u32 CursorX, u32 CursorY)
+CursorScreenToText(const CalculateLinesResult* Lines,
+                   u32 CursorX, u32 CursorY)
 {
-    return Lines->Lines[CursorY].StartIndex + CursorX;
+    return Lines->Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX;
+}
+
+static inline v2
+CursorTextToScreen1(const CalculateLinesResult* Lines,
+                   u32 CursorPosition)
+{
+    v2 OutPosition = v2(-1,-1);
+    for(u32 i = 0; i < Lines->Count; ++i)
+    {
+        if(CursorPosition >= Lines->Lines[i].StartIndex && CursorPosition <= Lines->Lines[i].EndIndex)
+        {
+            OutPosition.x = f32(CursorPosition - Lines->Lines[i].StartIndex);
+            OutPosition.y = f32(i);
+        }
+    }
+    return OutPosition;
 }
 
 
@@ -403,7 +424,8 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
             continue;
         }
 
-        v2 CursorPosition = CursorTextToScreen(State.Lines, j + StartPosition);
+        // TODO : Investigate
+        v2 CursorPosition = CursorTextToScreen1(State.Lines, j + StartPosition);
         
         Vertex V;
         V.Color = TextColor;
@@ -616,10 +638,10 @@ CursorMoveLeft(s32* CursorX, s32* CursorY, CalculateLinesResult& Lines)
 
     if(*CursorX < 0)
     { // go one up
-        if(*CursorY > 0)
+        if(*CursorY + FirstLineIndexOnScreen > 0)
         {
             *CursorY -= 1;
-            *CursorX = Lines.Lines[*CursorY].EndIndex - Lines.Lines[*CursorY].StartIndex;
+            *CursorX = Lines.Lines[*CursorY + FirstLineIndexOnScreen].EndIndex - Lines.Lines[*CursorY + FirstLineIndexOnScreen].StartIndex;
         }
         else
         { // first row
@@ -632,9 +654,9 @@ static inline void
 CursorMoveRight(s32* CursorX, s32* CursorY, CalculateLinesResult& Lines)
 {
     *CursorX += 1;
-    if(*CursorX > (s32)(Lines.Lines[*CursorY].EndIndex - Lines.Lines[*CursorY].StartIndex))
+    if(*CursorX > (s32)(Lines.Lines[*CursorY + FirstLineIndexOnScreen].EndIndex - Lines.Lines[*CursorY + FirstLineIndexOnScreen].StartIndex))
     { 
-        if(*CursorY < (s32)Lines.Count - 1)
+        if(*CursorY + FirstLineIndexOnScreen < Lines.Count - 1)
         { // go one down
             *CursorX = 0;
             *CursorY += 1;
@@ -759,6 +781,7 @@ CalculateLinesSB(TextBox Box, FrameArena* Arena, SplitBuffer& SB)
     CalculateLinesResult Result = {};
     Result.Lines = Lines;
     Result.Count = LinesIndex;
+    Result.MaxLinesOnScreen = TruncateF32ToS32(Box.Height / Box.CharacterHeight);
     
     return Result;
 }

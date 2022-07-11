@@ -10,6 +10,9 @@
 #include "defines.h"
 #include "math.hpp"
 #include "opengl.hpp"
+
+// TODO : This should not be here, we need to pass it in function params
+static u32 FirstLineIndexOnScreen = 0; 
 #include "utils.hpp"
 #include "input.hpp"
 
@@ -71,11 +74,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     f32 Near = 0;
     f32 Far = 5;
     
-    m4 OrthoMatrix;
-    OrthoMatrix.SetRow(0, 2.0f/(Right - Left), 0, 0, 0);
-    OrthoMatrix.SetRow(1, 0, 2.0f/(Top - Bottom), 0, 0);
-    OrthoMatrix.SetRow(2, 0, 0, -2.0f/(Far - Near), 0);
-    OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
+    m4 OrthoMatrix = MakeOrthoMatrix(Left, Right, Top, Bottom, Near, Far);
 
     f32 CharAspectRatio = 16.0f/30.0f;
     v3 Scale = v3(12, 30, 1);
@@ -128,7 +127,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
     
-    char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n}";
+    char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n} TestText1\nTestText2\nTestText3\nTestText4\nTestText5\nTestText6\nTestText7\nTestText8\nTestText9\nTestText10";
     SplitBuffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
     CalculateLinesResult Lines = CalculateLinesSB(Box, &Arena, SB);
 
@@ -155,7 +154,8 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             if(IsCursorMoved)
             {
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX);
+                IsCursorMoved = false;
             }
 
             if(Char >= 32 && Char <= 126) 
@@ -185,25 +185,63 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 SplitBufferAddChar(SB, Char);
             }
             
-            IsCursorMoved = false;
             if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
             {
                 SecondaryCursorPos += SecondaryAnvanceAmount;
             }
-        }        
+        }
 
         if(GetKey(Input, KeyCode_Up))
         {
-            u32 LineCount = Max(0, Lines.Count - 1);
-            CursorY = Clamp(CursorY - 1, 0, LineCount);
-            CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+            bool IsTherePageUp = FirstLineIndexOnScreen > 0;
+
+            CursorY -= 1;
+            if(CursorY < 0 && IsTherePageUp)
+            {
+                DebugLog("Scroll up\n");
+                FirstLineIndexOnScreen = Max(0, CursorY - Lines.MaxLinesOnScreen);
+                CursorY = Lines.MaxLinesOnScreen - 1;
+                f32 AdvanceSize = Lines.MaxLinesOnScreen * Box.CharacterHeight;
+                Top    += AdvanceSize;
+                Bottom += AdvanceSize;
+                OrthoMatrix = MakeOrthoMatrix(Left, Right,
+                                              Top, Bottom, Near, Far);
+                glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
+            }
+            else
+            {
+                CursorY = Clamp(CursorY, 0, Lines.Count-1);
+            }
+
+            CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY + FirstLineIndexOnScreen].EndIndex - Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex);
             IsCursorMoved = true;
         }
         else if(GetKey(Input, KeyCode_Down))
         {
             u32 LineCount = Max(0, Lines.Count - 1);
-            CursorY = Clamp(CursorY + 1, 0, LineCount);
-            CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY].EndIndex - Lines.Lines[CursorY].StartIndex);
+
+            bool IsTherePageDown = Lines.Count > (CursorY + FirstLineIndexOnScreen);
+
+            CursorY = CursorY + 1;
+            
+            if(IsTherePageDown && CursorY > (s32)Lines.MaxLinesOnScreen - 1)
+            {
+                DebugLog("Scroll down\n");
+                FirstLineIndexOnScreen = CursorY;
+                CursorY = 0;
+                f32 AdvanceSize = Lines.MaxLinesOnScreen * Box.CharacterHeight;
+                Top    -= AdvanceSize;
+                Bottom -= AdvanceSize;
+                OrthoMatrix = MakeOrthoMatrix(Left, Right,
+                                              Top, Bottom, Near, Far);
+                glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
+            }
+            else
+            {
+                CursorY = Clamp(CursorY, 0, LineCount - FirstLineIndexOnScreen);
+            }
+
+            CursorX = Clamp(CursorX, 0, Lines.Lines[CursorY + FirstLineIndexOnScreen].EndIndex - Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex);
             IsCursorMoved = true;
         }
         else if(GetKey(Input, KeyCode_Left))
@@ -220,7 +258,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         {
             if(IsCursorMoved)
             {
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX);
             }
             SplitBufferRemoveCharDeleteKey(SB);
 
@@ -233,7 +271,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         {
             if(IsCursorMoved)
             {
-                SplitBufferSetCursor(SB, Lines.Lines[CursorY].StartIndex + CursorX);
+                SplitBufferSetCursor(SB, Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX);
             }
             
             SplitBufferRemoveCharBackKey(SB);
@@ -419,6 +457,11 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             Scale.x -= 1.5f;
             Scale.y = Scale.x / CharAspectRatio;
             Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
+        }
+
+        if(IsCursorMoved)
+        {
+            DebugLog("CursorPosition : %i, %i\n", CursorScreenToText(&Lines, CursorX, CursorY), CursorY);
         }
         
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);

@@ -444,6 +444,20 @@ inline m4 m4::Inverse() {
     return inverse;
 }
 
+inline m4
+MakeOrthoMatrix(float Left, float Right,
+            float Top, float Bottom,
+            float Near, float Far)
+{
+    m4 OrthoMatrix;
+    OrthoMatrix.SetRow(0, 2.0f/(Right - Left), 0, 0, 0);
+    OrthoMatrix.SetRow(1, 0, 2.0f/(Top - Bottom), 0, 0);
+    OrthoMatrix.SetRow(2, 0, 0, -2.0f/(Far - Near), 0);
+    OrthoMatrix.SetRow(3, -((Right + Left)/(Right - Left)), -((Top + Bottom)/(Top - Bottom)), -((Far+Near)/(Far-Near)), 1);
+
+    return OrthoMatrix;
+}
+
 inline void m4::Print() {
 #ifdef DebugLog
     DebugLog("\nRow major:\n");
