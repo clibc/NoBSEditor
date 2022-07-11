@@ -134,6 +134,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     s32 CursorX = 0;
     s32 CursorY = 0;
 
+    //u32 PrimaryCursorPos = 0;
     u32 SecondaryCursorPos = 0;
     bool IsCursorMoved = false;
 
@@ -189,14 +190,26 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 SecondaryCursorPos += SecondaryAnvanceAmount;
             }
-        }
 
+            if(CursorY > (s32)Lines.MaxLinesOnScreen) // @State : Scroll Down
+            {
+                FirstLineIndexOnScreen += Lines.MaxLinesOnScreen;
+                CursorY = 0;
+                f32 AdvanceSize = Lines.MaxLinesOnScreen * Box.CharacterHeight;
+                Top    -= AdvanceSize;
+                Bottom -= AdvanceSize;
+                OrthoMatrix = MakeOrthoMatrix(Left, Right,
+                                              Top, Bottom, Near, Far);
+                glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
+            }
+        }
+        
         if(GetKey(Input, KeyCode_Up))
         {
             bool IsTherePageUp = FirstLineIndexOnScreen > 0;
 
             CursorY -= 1;
-            if(CursorY < 0 && IsTherePageUp)
+            if(CursorY < 0 && IsTherePageUp) // @State : Scroll Up
             {
                 DebugLog("Scroll up\n");
                 FirstLineIndexOnScreen = Max(0, CursorY - Lines.MaxLinesOnScreen);
@@ -224,7 +237,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             CursorY = CursorY + 1;
             
-            if(IsTherePageDown && CursorY > (s32)Lines.MaxLinesOnScreen - 1)
+            if(IsTherePageDown && CursorY > (s32)Lines.MaxLinesOnScreen - 1) // @State : Scroll Down
             {
                 DebugLog("Scroll down\n");
                 FirstLineIndexOnScreen = CursorY;
@@ -260,9 +273,10 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 SplitBufferSetCursor(SB, Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX);
             }
+
             SplitBufferRemoveCharDeleteKey(SB);
 
-            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY)) // If secondary cursor position is ahead of primary move it's position one left 
             {
                 SecondaryCursorPos -= 1;
             }
@@ -276,7 +290,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             
             SplitBufferRemoveCharBackKey(SB);
             CursorMoveLeft(&CursorX, &CursorY, Lines);
-            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY))
+            if(SecondaryCursorPos > CursorScreenToText(&Lines, CursorX, CursorY)) // If secondary cursor position is ahead of primary move it's position one left 
             {
                 SecondaryCursorPos -= 1;
             }
@@ -287,9 +301,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if(GetKeyDown(Input, KeyCode_C))
             {
                 DebugLog("Copy\n");
-
-                u32 PrimaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
-                
+                u32 PrimaryCursorPos = Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX;
                 u32 CopyTextSize = 0;
 
                 if(PrimaryCursorPos <= SB.Middle && SecondaryCursorPos <= SB.Middle) // Both in first segment
@@ -361,7 +373,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 // Cutting is same as coping but you just delete after
                 DebugLog("Cut\n");
                 
-                u32 PrimaryCursorPos = Lines.Lines[CursorY].StartIndex + CursorX;
+                u32 PrimaryCursorPos = Lines.Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX;
                 
                 u32 CopyTextSize = 0;
 
@@ -461,13 +473,14 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         if(IsCursorMoved)
         {
-            DebugLog("CursorPosition : %i, %i\n", CursorScreenToText(&Lines, CursorX, CursorY), CursorY);
+            DebugLog("CursorPosition : %i, X:%i Y:%i\n", CursorScreenToText(&Lines, CursorX, CursorY), CursorX, CursorY);
         }
         
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         Lines = CalculateLinesSB(Box, &Arena, SB);
+        //v2 PrimaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
         v2 SecondaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
         CursorDraw(Box, &Arena, v2(f32(CursorX), f32(CursorY)), 0.0f, CursorVAO, CursorVBO, CursorShader);
         CursorDraw(Box, &Arena, SecondaryCursorScreenPosition, 1.0f, CursorVAO, CursorVBO, CursorShader);

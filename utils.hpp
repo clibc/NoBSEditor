@@ -741,7 +741,7 @@ SplitBufferRemoveCharBackKey(SplitBuffer& SB)
 }
 
 static CalculateLinesResult
-CalculateLinesSB(TextBox Box, FrameArena* Arena, SplitBuffer& SB)
+CalculateLinesSB(const TextBox& Box, FrameArena* Arena, SplitBuffer& SB)
 {
     // TODO : This size should be calculated by counting how many there are in the text.
     // Now I calculate all the text so maybe I need to only consider text that is on the screen.
