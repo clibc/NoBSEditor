@@ -382,15 +382,8 @@ CursorTextToScreen(const CalculateLinesResult* Lines,
     return OutPosition;
 }
 
-static inline u32
-CursorScreenToText(const CalculateLinesResult* Lines,
-                   u32 CursorX, u32 CursorY)
-{
-    return Lines->Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX;
-}
-
 static inline v2
-CursorTextToScreen1(const CalculateLinesResult* Lines,
+CursorTextToScreenNoOffset(const CalculateLinesResult* Lines,
                    u32 CursorPosition)
 {
     v2 OutPosition = v2(-1,-1);
@@ -405,6 +398,12 @@ CursorTextToScreen1(const CalculateLinesResult* Lines,
     return OutPosition;
 }
 
+static inline u32
+CursorScreenToText(const CalculateLinesResult* Lines,
+                   u32 CursorX, u32 CursorY)
+{
+    return Lines->Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX;
+}
 
 static inline void
 TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
@@ -424,8 +423,7 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
             continue;
         }
 
-        // TODO : Investigate
-        v2 CursorPosition = CursorTextToScreen1(State.Lines, j + StartPosition);
+        v2 CursorPosition = CursorTextToScreenNoOffset(State.Lines, j + StartPosition);
         
         Vertex V;
         V.Color = TextColor;
