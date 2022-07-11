@@ -326,7 +326,8 @@ struct CursorVertex
 };
 
 static inline v3
-TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner) {
+TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner)
+{
     return v3(Box.CharacterWidth * CursorPosition.x + Box.CharacterWidth * Corner.x,
               Box.Height - (Box.CharacterHeight * CursorPosition.y + Box.CharacterHeight * Corner.y),
               0);
@@ -369,8 +370,7 @@ static inline v2
 CursorTextToScreen(const CalculateLinesResult* Lines,
                    u32 CursorPosition)
 {
-    CursorPosition += Lines->Lines[FirstLineIndexOnScreen].StartIndex;
-    v2 OutPosition = v2(-1,-1);
+    v2 OutPosition = v2(0,0);
     for(u32 i = 0; i < Lines->Count; ++i)
     {
         if(CursorPosition >= Lines->Lines[i].StartIndex && CursorPosition <= Lines->Lines[i].EndIndex)
@@ -380,29 +380,6 @@ CursorTextToScreen(const CalculateLinesResult* Lines,
         }
     }
     return OutPosition;
-}
-
-static inline v2
-CursorTextToScreenNoOffset(const CalculateLinesResult* Lines,
-                   u32 CursorPosition)
-{
-    v2 OutPosition = v2(-1,-1);
-    for(u32 i = 0; i < Lines->Count; ++i)
-    {
-        if(CursorPosition >= Lines->Lines[i].StartIndex && CursorPosition <= Lines->Lines[i].EndIndex)
-        {
-            OutPosition.x = f32(CursorPosition - Lines->Lines[i].StartIndex);
-            OutPosition.y = f32(i);
-        }
-    }
-    return OutPosition;
-}
-
-static inline u32
-CursorScreenToText(const CalculateLinesResult* Lines,
-                   u32 CursorX, u32 CursorY)
-{
-    return Lines->Lines[CursorY + FirstLineIndexOnScreen].StartIndex + CursorX;
 }
 
 static inline void
@@ -423,7 +400,7 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
             continue;
         }
 
-        v2 CursorPosition = CursorTextToScreenNoOffset(State.Lines, j + StartPosition);
+        v2 CursorPosition = CursorTextToScreen(State.Lines, j + StartPosition);
         
         Vertex V;
         V.Color = TextColor;
@@ -627,43 +604,6 @@ LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_pat
 	glDeleteShader(FragmentShaderID);
 
 	return ProgramID;
-}
-
-static inline void
-CursorMoveLeft(s32* CursorX, s32* CursorY, CalculateLinesResult& Lines)
-{
-    *CursorX -= 1;
-
-    if(*CursorX < 0)
-    { // go one up
-        if(*CursorY + FirstLineIndexOnScreen > 0)
-        {
-            *CursorY -= 1;
-            *CursorX = Lines.Lines[*CursorY + FirstLineIndexOnScreen].EndIndex - Lines.Lines[*CursorY + FirstLineIndexOnScreen].StartIndex;
-        }
-        else
-        { // first row
-            *CursorX = 0;
-        }
-    }
-}
-
-static inline void
-CursorMoveRight(s32* CursorX, s32* CursorY, CalculateLinesResult& Lines)
-{
-    *CursorX += 1;
-    if(*CursorX > (s32)(Lines.Lines[*CursorY + FirstLineIndexOnScreen].EndIndex - Lines.Lines[*CursorY + FirstLineIndexOnScreen].StartIndex))
-    { 
-        if(*CursorY + FirstLineIndexOnScreen < Lines.Count - 1)
-        { // go one down
-            *CursorX = 0;
-            *CursorY += 1;
-        }
-        else
-        { // Last row last column
-            *CursorX -= 1;
-        }
-    }
 }
 
 struct SplitBuffer

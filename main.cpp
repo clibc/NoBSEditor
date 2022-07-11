@@ -12,7 +12,7 @@
 #include "opengl.hpp"
 
 // TODO : This should not be here, we need to pass it in function params
-static u32 FirstLineIndexOnScreen = 0; 
+//static u32 FirstLineIndexOnScreen = 0; 
 #include "utils.hpp"
 #include "input.hpp"
 
@@ -184,18 +184,18 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         
         if(GetKey(Input, KeyCode_Up))
         {
-            v2 ScreenPos = CursorTextToScreen(&Lines, PrimaryCursorPos);
-            u32 NewY = Clamp(TruncateF32ToS32(ScreenPos.y - 1), 0, Lines.Count - 1);
-            u32 NewX = Clamp(TruncateF32ToS32(ScreenPos.x), 0, Lines.Lines[NewY].EndIndex - Lines.Lines[NewY].StartIndex);
-            PrimaryCursorPos = CursorScreenToText(&Lines, NewX, NewY);
+            v2 FakeScreenPos = CursorTextToScreen(&Lines, PrimaryCursorPos);
+            u32 NewY = Clamp(TruncateF32ToS32(FakeScreenPos.y - 1), 0, Max(Lines.Count - 1, 0));
+            u32 NewX = Clamp(TruncateF32ToS32(FakeScreenPos.x), 0, Lines.Lines[NewY].EndIndex - Lines.Lines[NewY].StartIndex);
+            PrimaryCursorPos = Lines.Lines[NewY].StartIndex + NewX;
             IsCursorMoved = true;
         }
         else if(GetKey(Input, KeyCode_Down))
         {
-            v2 ScreenPos = CursorTextToScreen(&Lines, PrimaryCursorPos);
-            u32 NewY = Clamp(TruncateF32ToS32(ScreenPos.y + 1), 0, Lines.Count - 1);
-            u32 NewX = Clamp(TruncateF32ToS32(ScreenPos.x), 0, Lines.Lines[NewY].EndIndex - Lines.Lines[NewY].StartIndex);
-            PrimaryCursorPos = CursorScreenToText(&Lines, NewX, NewY);
+            v2 FakeScreenPos = CursorTextToScreen(&Lines, PrimaryCursorPos);
+            u32 NewY = Clamp(TruncateF32ToS32(FakeScreenPos.y + 1), 0, Max(Lines.Count - 1, 0));
+            u32 NewX = Clamp(TruncateF32ToS32(FakeScreenPos.x), 0, Lines.Lines[NewY].EndIndex - Lines.Lines[NewY].StartIndex);
+            PrimaryCursorPos = Lines.Lines[NewY].StartIndex + NewX;
             IsCursorMoved = true;
         }
         else if(GetKey(Input, KeyCode_Left))
@@ -289,7 +289,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 }
                 ClipboardSize = CopyTextSize;
                 Clipboard[ClipboardSize] = 0;
-                //DebugLog("%s\n", Clipboard);
             }
             else if(GetKeyDown(Input, KeyCode_Y))
             {
@@ -413,6 +412,25 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         glClear(GL_COLOR_BUFFER_BIT);
 
         Lines = CalculateLinesSB(Box, &Arena, SB);
+
+        //TODO: Add another function to replace this CursorTextToScreenNoOffset call (like CursorGetCurrentLine)
+        u32 CursorCurrentLineIndex = (u32)CursorTextToScreen(&Lines, PrimaryCursorPos).y;
+
+        static u32 OldPage = 0;
+        u32 Page = CursorCurrentLineIndex / Lines.MaxLinesOnScreen;
+        if(Page != OldPage)
+        {
+            DebugLog("Scroll\n");
+            f32 AdvanceSize = Lines.MaxLinesOnScreen * Box.CharacterHeight;
+            OrthoMatrix = MakeOrthoMatrix(Left, Right, Top - AdvanceSize*Page, Bottom - AdvanceSize*Page,
+                                          Near, Far);
+            OldPage = Page;
+            glUseProgram(TextShader);
+            glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
+            glUseProgram(CursorShader);
+            glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
+        }
+        
         v2 PrimaryCursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
         v2 SecondaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
         CursorDraw(Box, &Arena, PrimaryCursorScreenPosition, 0.0f, CursorVAO, CursorVBO, CursorShader);
@@ -429,6 +447,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         FrameArenaReset(Arena);
     }
 
+    FreeMemory(SB.Start);
     FrameArenaDelete(Arena);
     return 0;
 }
