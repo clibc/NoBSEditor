@@ -382,6 +382,13 @@ CursorTextToScreen(const CalculateLinesResult* Lines,
     return OutPosition;
 }
 
+static inline u32
+CursorGetCurrentLine(const CalculateLinesResult* Lines,
+                   u32 CursorPosition)
+{
+    return (u32)CursorTextToScreen(Lines, CursorPosition).y;
+}
+
 static inline void
 TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
 {

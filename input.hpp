@@ -44,6 +44,8 @@ enum KeyCode
     KeyCode_Ctrl,
     KeyCode_Space,
     KeyCode_Alt,
+    KeyCode_Home,
+    KeyCode_End,
 
     // TODO : These 2 are not working
     KeyCode_Plus, 
@@ -279,6 +281,14 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
     else if(M.wParam == VK_OEM_MINUS)
     {
         Keys[KeyCode_Plus] = State;
+    }
+    else if(M.wParam == VK_HOME)
+    {
+        Keys[KeyCode_Home] = State;
+    }
+    else if(M.wParam == VK_END)
+    {
+        Keys[KeyCode_End] = State;
     }
 }
 

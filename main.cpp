@@ -11,8 +11,7 @@
 #include "math.hpp"
 #include "opengl.hpp"
 
-// TODO : This should not be here, we need to pass it in function params
-//static u32 FirstLineIndexOnScreen = 0; 
+static u32 FirsLineIndexOnScreen = 0;
 #include "utils.hpp"
 #include "input.hpp"
 
@@ -382,6 +381,19 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
         }
 
+        if(GetKeyDown(Input, KeyCode_Home))
+        {
+            DebugLog("Home Key\n");
+            PrimaryCursorPos = Lines.Lines[CursorGetCurrentLine(&Lines, PrimaryCursorPos)].StartIndex;
+            IsCursorMoved = true;
+        }
+        if(GetKeyDown(Input, KeyCode_End))
+        {
+            DebugLog("End Key\n");
+            PrimaryCursorPos = Lines.Lines[CursorGetCurrentLine(&Lines, PrimaryCursorPos)].EndIndex;
+            IsCursorMoved = true;
+        }
+
         if(GetKey(Input, KeyCode_Alt) && GetKeyDown(Input, KeyCode_W))
         {
             DebugLog("Alt Copy\n");
@@ -413,8 +425,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         Lines = CalculateLinesSB(Box, &Arena, SB);
 
-        //TODO: Add another function to replace this CursorTextToScreenNoOffset call (like CursorGetCurrentLine)
-        u32 CursorCurrentLineIndex = (u32)CursorTextToScreen(&Lines, PrimaryCursorPos).y;
+        u32 CursorCurrentLineIndex = CursorGetCurrentLine(&Lines, PrimaryCursorPos);
 
         static u32 OldPage = 0;
         u32 Page = CursorCurrentLineIndex / Lines.MaxLinesOnScreen;
@@ -430,7 +441,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             glUseProgram(CursorShader);
             glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
         }
-        
+                
         v2 PrimaryCursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
         v2 SecondaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
         CursorDraw(Box, &Arena, PrimaryCursorScreenPosition, 0.0f, CursorVAO, CursorVBO, CursorShader);
