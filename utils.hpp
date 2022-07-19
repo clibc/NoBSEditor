@@ -494,7 +494,7 @@ CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, float CursorID, u3
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static HWND
-CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height)
+CreateOpenGLWindow(HINSTANCE hInstance, s32 width, s32 height)
 {
     WNDCLASS wc = {};
     wc.style = CS_OWNDC;
@@ -514,7 +514,7 @@ CreateOpenGLWindow(HINSTANCE hInstance, int nCmdShow, s32 width, s32 height)
 }
 
 static GLuint
-LoadShaderFromFiles(const char * vertex_file_path,const char * fragment_file_path)
+LoadShaderFromFiles(const char* vertex_file_path, const char* fragment_file_path)
 {
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -695,6 +695,13 @@ CalculateLinesSB(const TextBox& Box, FrameArena* Arena, SplitBuffer& SB)
     u32 LinesIndex = 0;
     u32 LineStart = 0;
 
+    if(SB.TextSize == 0)
+    {
+        Lines[LinesIndex].StartIndex = 0;
+        Lines[LinesIndex].EndIndex   = 0;
+        goto ReturnResult;
+    }
+    
     char* Text = SB.Start;
 
     u32 Index = 0;
@@ -723,6 +730,7 @@ CalculateLinesSB(const TextBox& Box, FrameArena* Arena, SplitBuffer& SB)
         Index += 1;
     }
 
+ReturnResult:
     CalculateLinesResult Result = {};
     Result.Lines = Lines;
     Result.Count = LinesIndex;

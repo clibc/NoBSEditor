@@ -11,7 +11,6 @@
 #include "math.hpp"
 #include "opengl.hpp"
 
-static u32 FirsLineIndexOnScreen = 0;
 #include "utils.hpp"
 #include "input.hpp"
 
@@ -53,18 +52,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0; 
 }
 
-s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
-                   LPSTR lpCmdLine, int nCmdShow) 
+int
+main()
 {
-    Assert(AllocConsole());
-
-    HWND window_handle = CreateOpenGLWindow(hInstance, nCmdShow,
+    HWND window_handle = CreateOpenGLWindow(GetModuleHandle(0),
                                             WINDOW_WIDTH, WINDOW_HEIGHT);
     Device_Context = GetDC(window_handle);
-
+    
     CreateFontTextureResult TextureData = CreateFontTexture();
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
-    
+
     // Define orthographic projection
     f32 Left  = 0;
     f32 Right = WINDOW_WIDTH;
@@ -230,6 +227,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             
             SplitBufferRemoveCharBackKey(SB);
             PrimaryCursorPos -= 1; // Cursor Move Left
+            PrimaryCursorPos = Max(PrimaryCursorPos, 0);
             if(SecondaryCursorPos > PrimaryCursorPos) // If secondary cursor position is ahead of primary move it's position one left 
             {
                 SecondaryCursorPos -= 1;
@@ -406,6 +404,7 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             Scale.y = Scale.x / CharAspectRatio;
             Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
         }
+
         if(GetKey(Input, KeyCode_Ctrl) && GetKeyDown(Input, KeyCode_M))
         {
             DebugLog("CTRL MINUS\n");
@@ -448,7 +447,6 @@ s32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         CursorDraw(Box, &Arena, SecondaryCursorScreenPosition, 1.0f, CursorVAO, CursorVBO, CursorShader);
 
         TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
-
         TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,0,1));
         TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, TextColor);
         TextBoxEndDraw(RenderState);
