@@ -7,8 +7,8 @@
 #include "utils.hpp"
 #include "input.hpp"
 
-#define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 720
+#define WINDOW_WIDTH  800
+#define WINDOW_HEIGHT 600
 
 static bool Is_Running = true;
 HDC Device_Context;
@@ -17,6 +17,7 @@ HDC Device_Context;
 static char Clipboard[MAX_CLIPBOARD_BUFFER];
 static s32 TextSize = 0;
 static s32 ClipboardSize = 0;
+static u32 FirstLineIndexOnScreen = 0;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 {
@@ -45,7 +46,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0; 
 }
 
-i32
+s32
 main()
 {
     HWND window_handle = CreateOpenGLWindow(GetModuleHandle(0),
@@ -171,7 +172,7 @@ main()
             PrimaryCursorPos += CursorAdvanceAmount;
         }
         
-        if(GetKey(Input, KeyCode_Up))
+        if(GetKey(Input, KeyCode_Up) && !GetKey(Input, KeyCode_Alt))
         {
             v2 FakeScreenPos = CursorTextToScreen(&Lines, PrimaryCursorPos);
             u32 NewY = Clamp(TruncateF32ToS32(FakeScreenPos.y - 1), 0, Max(Lines.Count - 1, 0));
@@ -179,7 +180,7 @@ main()
             PrimaryCursorPos = Lines.Lines[NewY].StartIndex + NewX;
             IsCursorMoved = true;
         }
-        else if(GetKey(Input, KeyCode_Down))
+        else if(GetKey(Input, KeyCode_Down) && !GetKey(Input, KeyCode_Alt))
         {
             v2 FakeScreenPos = CursorTextToScreen(&Lines, PrimaryCursorPos);
             u32 NewY = Clamp(TruncateF32ToS32(FakeScreenPos.y + 1), 0, Max(Lines.Count - 1, 0));
@@ -417,22 +418,93 @@ main()
 
         Lines = CalculateLinesSB(Box, &Arena, SB);
 
-        u32 CursorCurrentLineIndex = CursorGetCurrentLine(&Lines, PrimaryCursorPos);
+        // Scroll Stuff
+        u32 CursorCurrentLineIndex = CursorGetCurrentLine(&Lines, PrimaryCursorPos);                
+        u32 LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
+        bool Scroll = false;
 
-        static u32 OldPage = 0;
-        u32 Page = CursorCurrentLineIndex / Lines.MaxLinesOnScreen;
-        if(Page != OldPage)
+        if(GetKey(Input, KeyCode_Alt) && GetKeyDown(Input, KeyCode_Up))
         {
-            DebugLog("Scroll\n");
-            f32 AdvanceSize = Lines.MaxLinesOnScreen * Box.CharacterHeight;
-            OrthoMatrix = MakeOrthoMatrix(Left, Right, Top - AdvanceSize*Page, Bottom - AdvanceSize*Page,
+            u32 ScrollSize = 3;
+            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen - ScrollSize, 0, Lines.Count-1);
+            LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
+            if(CursorCurrentLineIndex > LastLineIndexOnScreen)
+            {
+                // TODO : Add CursorSetLine() function for this
+                s32 CursorX = PrimaryCursorPos - Lines.Lines[CursorCurrentLineIndex].StartIndex;
+                PrimaryCursorPos = Clamp((s32)Lines.Lines[LastLineIndexOnScreen].StartIndex + CursorX,
+                                         (s32)Lines.Lines[LastLineIndexOnScreen].StartIndex,
+                                         (s32)Lines.Lines[LastLineIndexOnScreen].EndIndex);
+                CursorCurrentLineIndex = LastLineIndexOnScreen;
+            }
+
+            Scroll = true;
+            DebugLog("Scroll up\n");
+        }
+
+        if(GetKey(Input, KeyCode_Alt) && GetKeyDown(Input, KeyCode_Down))
+        {
+            u32 ScrollSize = 3;
+            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen + ScrollSize, 0, Lines.Count-1);
+            LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
+            if(CursorCurrentLineIndex < FirstLineIndexOnScreen)
+            {
+                // TODO : Add CursorSetLine() function for this
+                s32 CursorX = PrimaryCursorPos - Lines.Lines[CursorCurrentLineIndex].StartIndex;
+                PrimaryCursorPos = Clamp((s32)Lines.Lines[FirstLineIndexOnScreen].StartIndex + CursorX,
+                                         (s32)Lines.Lines[FirstLineIndexOnScreen].StartIndex,
+                                         (s32)Lines.Lines[FirstLineIndexOnScreen].EndIndex);
+                CursorCurrentLineIndex = FirstLineIndexOnScreen;
+            }
+            
+            Scroll = true;
+            DebugLog("Scroll down\n");
+        }
+        
+        if(CursorCurrentLineIndex < FirstLineIndexOnScreen) // Scroll up
+        {
+            u32 Diff = FirstLineIndexOnScreen - CursorCurrentLineIndex;
+            if(Diff < 2) // Is not jump
+            {
+                FirstLineIndexOnScreen -= Lines.MaxLinesOnScreen / 2 + Lines.MaxLinesOnScreen%2; // center cursor position
+            }
+            else // Is jump
+            {
+                FirstLineIndexOnScreen = CursorCurrentLineIndex - (Lines.MaxLinesOnScreen / 2 + Lines.MaxLinesOnScreen%2);
+            }
+            
+            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen, 0, Lines.Count-1);
+            DebugLog("FirstLineIndexOnScreen : %i\n", FirstLineIndexOnScreen);
+            Scroll = true;
+        }
+        else if(CursorCurrentLineIndex > LastLineIndexOnScreen) // Scroll Down
+        {
+            u32 Diff = CursorCurrentLineIndex - LastLineIndexOnScreen;
+            if(Diff < 2) // Is not jump
+            {
+                FirstLineIndexOnScreen += Lines.MaxLinesOnScreen / 2 + Lines.MaxLinesOnScreen%2; // center cursor position
+            }
+            else // Is jump
+            {
+                FirstLineIndexOnScreen = CursorCurrentLineIndex - (Lines.MaxLinesOnScreen / 2 + Lines.MaxLinesOnScreen%2);
+            }
+
+            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen, 0, Lines.Count-1);
+            DebugLog("FirstLineIndexOnScreen : %i\n", FirstLineIndexOnScreen);
+            Scroll = true;
+        }
+
+        if(Scroll)
+        {
+            f32 AdvanceSize = FirstLineIndexOnScreen * Box.CharacterHeight;
+            OrthoMatrix = MakeOrthoMatrix(Left, Right, Top - AdvanceSize, Bottom - AdvanceSize,
                                           Near, Far);
-            OldPage = Page;
             glUseProgram(TextShader);
             glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
             glUseProgram(CursorShader);
             glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
         }
+        // Scroll End
                 
         v2 PrimaryCursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
         v2 SecondaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
