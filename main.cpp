@@ -1,11 +1,4 @@
-#include <iostream>
 #include <windows.h>
-#include <assert.h>
-#include <GL/gl.h>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <vector>
 
 #include "defines.h"
 #include "math.hpp"
@@ -14,8 +7,8 @@
 #include "utils.hpp"
 #include "input.hpp"
 
-#define WINDOW_WIDTH  800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH  1280
+#define WINDOW_HEIGHT 720
 
 static bool Is_Running = true;
 HDC Device_Context;
@@ -52,7 +45,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0; 
 }
 
-int
+i32
 main()
 {
     HWND window_handle = CreateOpenGLWindow(GetModuleHandle(0),

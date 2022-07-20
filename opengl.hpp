@@ -1,4 +1,6 @@
 #pragma once
+#include <GL/gl.h>
+#include <assert.h>
 
 #define ENTRY __stdcall 
 

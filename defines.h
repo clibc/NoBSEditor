@@ -18,13 +18,7 @@ typedef double f64;
 #define F32Max FLT_MAX
 #define F32Min FLT_MIN
 
-/* #define DebugLog(...)                        \ */
-/*     {                                                                   \ */
-/*         char ___temp[200] = {};                                         \ */
-/*         DWORD ___Size = sprintf_s(___temp, __VA_ARGS__);                \ */
-/*         WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), ___temp, ___Size, NULL, NULL); \ */
-/*     }                                                */
-
+#include <iostream>
 #define DebugLog(...) printf(__VA_ARGS__)
 
 #define WarnIfNot(a)                                          \

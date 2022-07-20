@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
 #define Assert(Expression)                      \
 if(!(Expression)) { *(int*)0 = 0; }
 
