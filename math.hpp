@@ -613,3 +613,9 @@ SmoothStep(float edge0, float edge1, float x) {
    x = (x - edge0) / (edge1 - edge0);
    return x * x * (3 - 2 * x);
 }
+
+static inline float
+Lerp(float A, float B, float T)
+{
+    return A + T*(B-A);
+}

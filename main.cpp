@@ -129,7 +129,14 @@ main()
 
     f64 FrameCount = 0;
     f64 StartTime  = (f64)GetTickCount();
-    
+
+    // Scroll interpolation
+    f32 CurrentTop = Top;
+    f32 CurrentBottom = Bottom;
+    f32 TargetTop = Top;
+    f32 TargetBottom = Bottom;
+    //
+        
     InputHandle Input;
     MSG M = {};
     ProcessInputWin32(&Input,M);
@@ -531,7 +538,14 @@ main()
         if(Scroll)
         {
             f32 AdvanceSize = FirstLineIndexOnScreen * Box.CharacterHeight;
-            OrthoMatrix = MakeOrthoMatrix(Left, Right, Top - AdvanceSize, Bottom - AdvanceSize,
+            TargetTop = Top - AdvanceSize;
+            TargetBottom = Bottom - AdvanceSize;
+        }
+
+        { // TODO : stop when interpolation is done
+            CurrentTop = Lerp(CurrentTop, TargetTop, 0.3f);
+            CurrentBottom = Lerp(CurrentBottom, TargetBottom, 0.3f);
+            OrthoMatrix = MakeOrthoMatrix(Left, Right, CurrentTop, CurrentBottom,
                                           Near, Far);
             glUseProgram(TextShader);
             glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
