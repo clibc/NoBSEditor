@@ -110,21 +110,6 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
         Input->NewInput = false;
         //return;
     }
-
-    for(s32 I = 0; I < KeyCode_Count; ++I)
-    {
-        if(I != KeyCode_Ctrl && I != KeyCode_Alt)
-        { // CTRL & Alt keys are kinda nasty
-            if(Keys[I] == DOWN)
-            {
-                Keys[I] = NONE;
-            }
-            else if(Keys[I] == UP)
-            {
-                Keys[I] = NONE;
-            }
-        }
-    }
     
     if(M.wParam == 'A')
     {

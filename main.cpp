@@ -7,8 +7,10 @@
 #include "utils.hpp"
 #include "input.hpp"
 
-#define WINDOW_WIDTH  800
-#define WINDOW_HEIGHT 600
+// #define WINDOW_WIDTH  800
+// #define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH  1280
+#define WINDOW_HEIGHT 720
 
 static bool Is_Running = true;
 HDC Device_Context;
@@ -125,11 +127,43 @@ main()
     u32 SecondaryCursorPos = 0;
     bool IsCursorMoved = false;
 
+    f64 FrameCount = 0;
+    f64 StartTime  = (f64)GetTickCount();
+    
     InputHandle Input;
-    MSG M;
-    while(Is_Running && GetMessage(&M, window_handle, 0,0))
+    MSG M = {};
+    ProcessInputWin32(&Input,M);
+    while(Is_Running)
     {
-        ProcessInputWin32(&Input,M);
+        M = {};
+        KeyState* Keys = Input.Keys;
+        for(s32 I = 0; I < KeyCode_Count; ++I)
+        {
+            if(I != KeyCode_Ctrl && I != KeyCode_Alt)
+            { // CTRL & Alt keys are kinda nasty
+                if(Keys[I] == DOWN)
+                {
+                    Keys[I] = NONE;
+                }
+                else if(Keys[I] == UP)
+                {
+                    Keys[I] = NONE;
+                }
+            }
+        }
+
+        while(PeekMessage(&M, window_handle, 0,0, PM_REMOVE))
+        {
+            if(M.message == WM_KEYDOWN || M.message == WM_SYSKEYDOWN
+               || M.message == WM_KEYUP || M.message == WM_SYSKEYUP)
+            {
+                ProcessInputWin32(&Input,M);
+            }
+            else
+            {
+                DispatchMessage(&M);
+            }
+        }
         
         if(GetKeyDown(Input, KeyCode_Escape))
         {
@@ -519,6 +553,19 @@ main()
         glFlush();
         SwapBuffers(Device_Context);
         FrameArenaReset(Arena);
+
+        f64 TimeElapsed = ((f64)GetTickCount() - StartTime)/1000;
+        f64 FPS = FrameCount / TimeElapsed;
+        DebugLog("FPS: %f\n", FPS);
+
+        f64 DesiredTimeElapsed = FrameCount * 0.016; // 60 fps
+        FrameCount += 1;
+        if(TimeElapsed < DesiredTimeElapsed)
+        {
+            u32 SleepTime = (u32)((DesiredTimeElapsed - TimeElapsed)*1000);
+            Sleep(SleepTime);
+        }
+        
     }
 
     FreeMemory(SB.Start);
