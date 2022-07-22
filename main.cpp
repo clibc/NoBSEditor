@@ -7,10 +7,9 @@
 #include "utils.hpp"
 #include "input.hpp"
 
-// #define WINDOW_WIDTH  800
-// #define WINDOW_HEIGHT 600
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
+#define TARGET_FPS 60
 
 static bool Is_Running = true;
 HDC Device_Context;
@@ -20,6 +19,14 @@ static char Clipboard[MAX_CLIPBOARD_BUFFER];
 static s32 TextSize = 0;
 static s32 ClipboardSize = 0;
 static u32 FirstLineIndexOnScreen = 0;
+
+static inline s64
+GetPerformanceCounter()
+{
+    LARGE_INTEGER Ticks;
+    Assert(QueryPerformanceCounter(&Ticks))
+    return Ticks.QuadPart;
+}
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 {
@@ -127,16 +134,23 @@ main()
     u32 SecondaryCursorPos = 0;
     bool IsCursorMoved = false;
 
-    f64 FrameCount = 0;
-    f64 StartTime  = (f64)GetTickCount();
-
     // Scroll interpolation
     f32 CurrentTop = Top;
     f32 CurrentBottom = Bottom;
     f32 TargetTop = Top;
     f32 TargetBottom = Bottom;
+    f32 ScrollSpeeed = 15;
     //
-        
+
+    // Timing vars
+    LARGE_INTEGER FrequencyReturn;
+    QueryPerformanceFrequency(&FrequencyReturn);
+    s64 Frequency = FrequencyReturn.QuadPart;
+    s64 FrameStartCounter = GetPerformanceCounter();
+    f32 DeltaTime = 0.0f;
+    f64 TimeSinceStart = 0.0;
+    //
+    
     InputHandle Input;
     MSG M = {};
     ProcessInputWin32(&Input,M);
@@ -543,8 +557,9 @@ main()
         }
 
         { // TODO : stop when interpolation is done
-            CurrentTop = Lerp(CurrentTop, TargetTop, 0.3f);
-            CurrentBottom = Lerp(CurrentBottom, TargetBottom, 0.3f);
+            f32 T = ScrollSpeeed * DeltaTime;
+            CurrentTop = Lerp(CurrentTop, TargetTop, T);
+            CurrentBottom = Lerp(CurrentBottom, TargetBottom, T);
             OrthoMatrix = MakeOrthoMatrix(Left, Right, CurrentTop, CurrentBottom,
                                           Near, Far);
             glUseProgram(TextShader);
@@ -567,19 +582,27 @@ main()
         glFlush();
         SwapBuffers(Device_Context);
         FrameArenaReset(Arena);
-
-        f64 TimeElapsed = ((f64)GetTickCount() - StartTime)/1000;
-        f64 FPS = FrameCount / TimeElapsed;
-        DebugLog("FPS: %f\n", FPS);
-
-        f64 DesiredTimeElapsed = FrameCount * 0.016; // 60 fps
-        FrameCount += 1;
-        if(TimeElapsed < DesiredTimeElapsed)
-        {
-            u32 SleepTime = (u32)((DesiredTimeElapsed - TimeElapsed)*1000);
-            Sleep(SleepTime);
-        }
         
+        TimeSinceStart += DeltaTime;
+        DebugLog("TimePassed : %f \n", TimeSinceStart);
+
+        s64 FrameEndCounter = GetPerformanceCounter();
+        s64 ElapsedCounter = FrameEndCounter - FrameStartCounter;
+
+        const s64 DesiredElapsedCounter = Frequency / TARGET_FPS;
+
+        // TODO : Use Sleep()
+        while(DesiredElapsedCounter > ElapsedCounter)
+        {
+            ElapsedCounter = GetPerformanceCounter() - FrameStartCounter;
+        }
+
+        f64 ElapsedTimeInMs = (f64)(ElapsedCounter * 1000)/(f64)Frequency;
+        DeltaTime = (f32)(ElapsedCounter)/(f32)Frequency;
+        DeltaTime = Clamp(DeltaTime, 0.0f, FLT_MAX);
+        
+        FrameStartCounter = GetPerformanceCounter();
+        DebugLog("Elapsed time in Ms : %f \\ FPS : %f \\ DeltaTime : %f\n", ElapsedTimeInMs, 1000.0/ElapsedTimeInMs, DeltaTime);
     }
 
     FreeMemory(SB.Start);
