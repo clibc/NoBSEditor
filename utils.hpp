@@ -10,18 +10,6 @@ if(!(Expression)) { *(int*)0 = 0; }
 
 #define Megabytes(x) (x*1024*1024)
 
-static inline s32
-TruncateF32ToS32(f32 Value)
-{
-    return (s32)Value;
-}
-
-static inline s32
-RoundF32ToS32(f32 Value)
-{
-    return (s32)(Value + 0.5f);
-}
-
 struct ReadEntireFileResult
 {
     char* content;
@@ -114,6 +102,8 @@ struct TextBox
     f32 Height;
     f32 CharacterWidth;
     f32 CharacterHeight;
+
+    v3 Position;
 };
 
 #define CharTopLeft  v2(0,0)
@@ -164,6 +154,7 @@ CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize)
     CalculateLinesResult Result = {};
     Result.Lines = Lines;
     Result.Count = LinesIndex;
+    // TODO: Box.Height is not always WINDOW_HEIGHT!!
     Result.MaxLinesOnScreen = TruncateF32ToS32(Box.Height / Box.CharacterHeight);
 
     return Result;
@@ -333,9 +324,11 @@ struct CursorVertex
 static inline v3
 TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner)
 {
-    return v3(Box.CharacterWidth * CursorPosition.x + Box.CharacterWidth * Corner.x,
-              Box.Height - (Box.CharacterHeight * CursorPosition.y + Box.CharacterHeight * Corner.y),
-              0);
+    v3 Result = v3(Box.CharacterWidth * CursorPosition.x + Box.CharacterWidth * Corner.x,
+                   (f32)WINDOW_HEIGHT - (Box.CharacterHeight * CursorPosition.y + Box.CharacterHeight * Corner.y),
+                   0);
+
+    return Result + Box.Position;
 }
 
 struct TextBoxRenderState
@@ -367,7 +360,7 @@ TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u3
     S.BatchCount = 0;
     S.ArenaMemory = FrameArenaAllocateMemory(*Arena, 1200 * sizeof(Vertex));
     S.Lines = Lines;
-    
+
     return S;
 }
 
@@ -742,4 +735,55 @@ ReturnResult:
     Result.MaxLinesOnScreen = TruncateF32ToS32(Box.Height / Box.CharacterHeight);
     
     return Result;
+}
+
+static void
+TextBoxFillColor(TextBox& Box, FrameArena* Arena, u32 VAO, u32 VBO, u32 Shader, v3 Color)
+{
+    // NOTE: This is just like drawing cursor, but with different vertex positions
+    // NOTE: This shader should be not effected by scrolling, so it's projection matrix stay unchanged
+    glUseProgram(Shader);
+    CursorVertex* BatchMemory = (CursorVertex*)FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
+    u32 BatchCurrentIndex = 0;
+
+    CursorVertex V;
+    f32 CursorID = 0.0f; // solid
+    V.Color = v4(Color.r, Color.g, Color.b, CursorID);
+
+    v3 BoxPosition = v3(Box.Position.x, WINDOW_HEIGHT - Box.Position.y, Box.Position.z);
+
+    v3 VTopLeft  = BoxPosition;
+    v3 VBotLeft  = v3(BoxPosition.x, BoxPosition.y - Box.Height, 0);
+    v3 VTopRight = v3(BoxPosition.x + Box.Width, BoxPosition.y, 0);
+    v3 VBotRight = v3(BoxPosition.x + Box.Width, BoxPosition.y - Box.Height, 0);
+    
+    V.Position = VTopRight;
+    V.UV = CharTopRight;
+    BatchMemory[BatchCurrentIndex++] = V;
+
+    V.Position = VBotLeft;
+    V.UV = CharBotLeft;
+    BatchMemory[BatchCurrentIndex++] = V;
+
+    V.Position = VBotRight;
+    V.UV = CharBotRight;
+    BatchMemory[BatchCurrentIndex++] = V;
+
+    V.Position = VTopRight;
+    V.UV = CharTopRight;
+    BatchMemory[BatchCurrentIndex++] = V;
+
+    V.Position = VTopLeft;
+    V.UV = CharTopLeft;
+    BatchMemory[BatchCurrentIndex++] = V;
+
+    V.Position = VBotLeft;
+    V.UV = CharBotLeft;
+    BatchMemory[BatchCurrentIndex++] = V;
+
+    glUseProgram(Shader);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(CursorVertex), BatchMemory, GL_STATIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
 }

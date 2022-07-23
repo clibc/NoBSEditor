@@ -1,3 +1,8 @@
+#define WINDOW_WIDTH  1280
+#define WINDOW_HEIGHT 720
+#define TARGET_FPS 60
+#define SCROLL_SIZE 6
+
 #include <windows.h>
 
 #include "defines.h"
@@ -6,11 +11,6 @@
 
 #include "utils.hpp"
 #include "input.hpp"
-
-#define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 720
-#define TARGET_FPS 60
-#define SCROLL_SIZE 6
 
 static bool Is_Running = true;
 HDC Device_Context;
@@ -59,6 +59,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 s32
 main()
 {
+    // Set timer interval to 1 ms
     timeBeginPeriod(1);
 
     HWND window_handle = CreateOpenGLWindow(GetModuleHandle(0),
@@ -68,16 +69,17 @@ main()
     CreateFontTextureResult TextureData = CreateFontTexture();
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
 
-    // Define orthographic projection
+    // NOTE: Define orthographic projection
+    // TODO: Set up this in a way that window top left is 0,0
+    // TODO: Set up this in a way that window top left is 0,0
+    // TODO: Set up this in a way that window top left is 0,0
     f32 Left  = 0;
     f32 Right = WINDOW_WIDTH;
     f32 Top   = WINDOW_HEIGHT;
     f32 Bottom = 0;
     f32 Near = 0;
     f32 Far = 5;
-    
     m4 OrthoMatrix = MakeOrthoMatrix(Left, Right, Top, Bottom, Near, Far);
-
     f32 CharAspectRatio = 16.0f/30.0f;
     v3 Scale = v3(12, 30, 1);
     Scale.y = Scale.x / CharAspectRatio;
@@ -85,6 +87,11 @@ main()
 
     GLuint TextShader   = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
     GLuint CursorShader = LoadShaderFromFiles("../shaders/cursor_vertex.shader", "../shaders/cursor_frag.shader");
+    // NOTE: This is for drawing color filled boxes
+    // NOTE: Ortho matrix does not change when scrolling
+    // NOTE: Used for debugging for now
+    GLuint ScreenSpaceBoxShader = LoadShaderFromFiles("../shaders/cursor_vertex.shader", "../shaders/cursor_frag.shader");
+    GLuint ScreenSpaceTextShader = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
 
     GLuint TextVAO, TextVBO;
     glGenVertexArrays(1, &TextVAO);
@@ -117,17 +124,29 @@ main()
     glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
     glUniform2fv(TextureLookupTableLocation, 94 * 4, (f32*)TextureLookupTable);
 
+    glUseProgram(ScreenSpaceTextShader);
+    u32 OrthoMatrixLocationScreen = glGetUniformLocation(ScreenSpaceTextShader, "OrthoMatrix");
+    u32 TextureLookupTableLocationScreen = glGetUniformLocation(ScreenSpaceTextShader, "TextureLookupTable");
+    glUniformMatrix4fv(OrthoMatrixLocationScreen, 1, GL_TRUE, (f32*)&OrthoMatrix);
+    glUniform2fv(TextureLookupTableLocationScreen, 94 * 4, (f32*)TextureLookupTable);
+
     glUseProgram(CursorShader);
+    glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
+
+    glUseProgram(ScreenSpaceBoxShader);
     glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
 
     WarnIfNot(OrthoMatrixLocation >= 0);
     WarnIfNot(OrthoMatrixLocationCursor >= 0);
     WarnIfNot(TextureLookupTableLocation >= 0);
+    WarnIfNot(OrthoMatrixLocationScreen >= 0);
+    WarnIfNot(TextureLookupTableLocationScreen >= 0);
     FreeMemory(TextureLookupTable);
 
     FrameArena Arena = FrameArenaCreate(Megabytes(2));
     
-    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
+    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, {200,0,0}};
+    TextBox DebugBox = {300, 150, Scale.x, Scale.y, {WINDOW_WIDTH - 300,0,0}};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n} TestText1\nTestText2\nTestText3\nTestText4\nTestText5\nTestText6\nTestText7\nTestText8\nTestText9\nTestText10";
     SplitBuffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
@@ -152,6 +171,7 @@ main()
     s64 FrameStartCounter = GetPerformanceCounter();
     f32 DeltaTime = 0.0f;
     f64 TimeSinceStart = 0.0;
+    f64 ElapsedTimeInMs = 0;
     //
     
     InputHandle Input;
@@ -464,12 +484,6 @@ main()
             Scale.y = Scale.x / CharAspectRatio;
             Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
         }
-
-        if(IsCursorMoved)
-        {
-            v2 CursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
-            DebugLog("CursorPosition : %i, X:%i Y:%i\n", PrimaryCursorPos, u32(CursorScreenPosition.x), u32(CursorScreenPosition.y));
-        }
         
         glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -579,32 +593,42 @@ main()
         TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,0,1));
         TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, TextColor);
         TextBoxEndDraw(RenderState);
-               
-        TimeSinceStart += DeltaTime;
-        DebugLog("TimePassed : %f \n", TimeSinceStart);
 
-        s64 FrameEndCounter = GetPerformanceCounter();
-        s64 ElapsedCounter = FrameEndCounter - FrameStartCounter;
-
-        const s64 DesiredElapsedCounter = Frequency / TARGET_FPS;
-
-        while(DesiredElapsedCounter > ElapsedCounter)
-        {
-            u32 SleepTime = (u32)((DesiredElapsedCounter - ElapsedCounter) * 1000 / Frequency);
-            Sleep(SleepTime);
-            ElapsedCounter = GetPerformanceCounter() - FrameStartCounter;
+        { // Render debug text
+            v2 CursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
+            char* DebugText = (char*)FrameArenaAllocateMemory(Arena, 1000);
+            s32 WrittenChar = 0;
+            WrittenChar += sprintf_s(DebugText, 1000, "DeltaTime %f\nTimePassed: %f\nElapsedTimeInMs : %f\nFPS : %f\nCursorX: %f\nCursorY: %f",
+                                     DeltaTime, TimeSinceStart,
+                                     ElapsedTimeInMs, 1000.0/ElapsedTimeInMs,
+                                     CursorScreenPosition.x, CursorScreenPosition.y);
+            CalculateLinesResult DebugLines = CalculateLines(DebugBox, &Arena, DebugText, WrittenChar);
+            TextBoxFillColor(DebugBox, &Arena, CursorVAO, CursorVBO, ScreenSpaceBoxShader, v3(95.0f/255.0f, 110.0f/255.0f, 133.0f/255.0f));
+            RenderState = TextBoxBeginDraw(DebugBox, &Arena, &DebugLines, TextVAO, TextVBO, ScreenSpaceTextShader);
+            TextBoxPushText(RenderState, DebugText, WrittenChar, v3(0,1,0));
+            TextBoxEndDraw(RenderState);
         }
-
-        f64 ElapsedTimeInMs = (f64)(ElapsedCounter * 1000)/(f64)Frequency;
-        DeltaTime = (f32)(ElapsedCounter)/(f32)Frequency;
-        DeltaTime = Clamp(DeltaTime, 0.0f, FLT_MAX);
-
+        
         glFlush();
         SwapBuffers(Device_Context);
         FrameArenaReset(Arena);
         
-        FrameStartCounter = GetPerformanceCounter();
-        DebugLog("Elapsed time in Ms : %f \\ FPS : %f \\ DeltaTime : %f\n", ElapsedTimeInMs, 1000.0/ElapsedTimeInMs, DeltaTime);
+        { // FPS lock
+            TimeSinceStart += DeltaTime;
+            s64 FrameEndCounter = GetPerformanceCounter();
+            s64 ElapsedCounter = FrameEndCounter - FrameStartCounter;
+            const s64 DesiredElapsedCounter = Frequency / TARGET_FPS;
+            while(DesiredElapsedCounter > ElapsedCounter)
+            {
+                u32 SleepTime = (u32)((DesiredElapsedCounter - ElapsedCounter) * 1000 / Frequency);
+                Sleep(SleepTime);
+                ElapsedCounter = GetPerformanceCounter() - FrameStartCounter;
+            }
+            ElapsedTimeInMs = (f64)(ElapsedCounter * 1000)/(f64)Frequency;
+            DeltaTime = (f32)(ElapsedCounter)/(f32)Frequency;
+            DeltaTime = Clamp(DeltaTime, 0.0f, FLT_MAX);
+            FrameStartCounter = GetPerformanceCounter();
+        }
     }
 
     FreeMemory(SB.Start);
