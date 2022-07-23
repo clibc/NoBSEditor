@@ -143,7 +143,7 @@ main()
     FrameArena Arena = FrameArenaCreate(Megabytes(2));
     
     TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, {200,0,0}};
-    TextBox DebugBox = {300, 150, Scale.x, Scale.y, {WINDOW_WIDTH - 300,0,0}};
+    TextBox DebugBox = {300, 160, Scale.x, Scale.y, {WINDOW_WIDTH - 300,0,0}};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n} TestText1\nTestText2\nTestText3\nTestText4\nTestText5\nTestText6\nTestText7\nTestText8\nTestText9\nTestText10";
     SplitBuffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
@@ -504,6 +504,7 @@ main()
                                          (s32)Lines.Lines[LastLineIndexOnScreen].StartIndex,
                                          (s32)Lines.Lines[LastLineIndexOnScreen].EndIndex);
                 CursorCurrentLineIndex = LastLineIndexOnScreen;
+                IsCursorMoved = true;
             }
 
             Scroll = true;
@@ -522,6 +523,7 @@ main()
                                          (s32)Lines.Lines[FirstLineIndexOnScreen].StartIndex,
                                          (s32)Lines.Lines[FirstLineIndexOnScreen].EndIndex);
                 CursorCurrentLineIndex = FirstLineIndexOnScreen;
+                IsCursorMoved = true;
             }
             
             Scroll = true;
@@ -599,6 +601,7 @@ main()
                                      DeltaTime, TimeSinceStart,
                                      ElapsedTimeInMs, 1000.0/ElapsedTimeInMs,
                                      CursorScreenPosition.x, CursorScreenPosition.y);
+            WrittenChar += sprintf_s(DebugText + WrittenChar, 1000-WrittenChar, "\nIsCursorMoved : %s", IsCursorMoved ? "true" : "false");
             CalculateLinesResult DebugLines = CalculateLines(DebugBox, &Arena, DebugText, WrittenChar);
             TextBoxFillColor(DebugBox, &Arena, CursorVAO, CursorVBO, ScreenSpaceBoxShader, v3(95.0f/255.0f, 110.0f/255.0f, 133.0f/255.0f));
             RenderState = TextBoxBeginDraw(DebugBox, &Arena, &DebugLines, TextVAO, TextVBO, ScreenSpaceTextShader);
