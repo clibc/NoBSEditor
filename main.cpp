@@ -70,9 +70,6 @@ main()
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
 
     // NOTE: Define orthographic projection
-    // TODO: Set up this in a way that window top left is 0,0
-    // TODO: Set up this in a way that window top left is 0,0
-    // TODO: Set up this in a way that window top left is 0,0
     f32 Left  = 0;
     f32 Right = WINDOW_WIDTH;
     f32 Top   = WINDOW_HEIGHT;
