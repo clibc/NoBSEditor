@@ -10,6 +10,7 @@
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
 #define TARGET_FPS 60
+#define SCROLL_SIZE 6
 
 static bool Is_Running = true;
 HDC Device_Context;
@@ -58,6 +59,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 s32
 main()
 {
+    timeBeginPeriod(1);
+
     HWND window_handle = CreateOpenGLWindow(GetModuleHandle(0),
                                             WINDOW_WIDTH, WINDOW_HEIGHT);
     Device_Context = GetDC(window_handle);
@@ -478,10 +481,9 @@ main()
         u32 LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
         bool Scroll = false;
 
-        if(GetKey(Input, KeyCode_Alt) && GetKeyDown(Input, KeyCode_Up))
+        if(GetKey(Input, KeyCode_Alt) && GetKey(Input, KeyCode_Up))
         {
-            u32 ScrollSize = 3;
-            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen - ScrollSize, 0, Lines.Count-1);
+            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen - SCROLL_SIZE, 0, Lines.Count-1);
             LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
             if(CursorCurrentLineIndex > LastLineIndexOnScreen)
             {
@@ -497,10 +499,9 @@ main()
             DebugLog("Scroll up\n");
         }
 
-        if(GetKey(Input, KeyCode_Alt) && GetKeyDown(Input, KeyCode_Down))
+        if(GetKey(Input, KeyCode_Alt) && GetKey(Input, KeyCode_Down))
         {
-            u32 ScrollSize = 3;
-            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen + ScrollSize, 0, Lines.Count-1);
+            FirstLineIndexOnScreen = Clamp(FirstLineIndexOnScreen + SCROLL_SIZE, 0, Lines.Count-1);
             LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
             if(CursorCurrentLineIndex < FirstLineIndexOnScreen)
             {
@@ -578,11 +579,7 @@ main()
         TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,0,1));
         TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, TextColor);
         TextBoxEndDraw(RenderState);
-        
-        glFlush();
-        SwapBuffers(Device_Context);
-        FrameArenaReset(Arena);
-        
+               
         TimeSinceStart += DeltaTime;
         DebugLog("TimePassed : %f \n", TimeSinceStart);
 
@@ -594,12 +591,18 @@ main()
         // TODO : Use Sleep()
         while(DesiredElapsedCounter > ElapsedCounter)
         {
+            u32 SleepTime = (u32)((DesiredElapsedCounter - ElapsedCounter) * 1000 / Frequency);
+            Sleep(SleepTime);
             ElapsedCounter = GetPerformanceCounter() - FrameStartCounter;
         }
 
         f64 ElapsedTimeInMs = (f64)(ElapsedCounter * 1000)/(f64)Frequency;
         DeltaTime = (f32)(ElapsedCounter)/(f32)Frequency;
         DeltaTime = Clamp(DeltaTime, 0.0f, FLT_MAX);
+
+        glFlush();
+        SwapBuffers(Device_Context);
+        FrameArenaReset(Arena);
         
         FrameStartCounter = GetPerformanceCounter();
         DebugLog("Elapsed time in Ms : %f \\ FPS : %f \\ DeltaTime : %f\n", ElapsedTimeInMs, 1000.0/ElapsedTimeInMs, DeltaTime);
