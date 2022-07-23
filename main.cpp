@@ -588,7 +588,6 @@ main()
 
         const s64 DesiredElapsedCounter = Frequency / TARGET_FPS;
 
-        // TODO : Use Sleep()
         while(DesiredElapsedCounter > ElapsedCounter)
         {
             u32 SleepTime = (u32)((DesiredElapsedCounter - ElapsedCounter) * 1000 / Frequency);
