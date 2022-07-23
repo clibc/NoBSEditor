@@ -99,7 +99,7 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
         }
         Input->NewInput = true;
         
-        if(!(Keys[KeyCode_Ctrl] & (DOWN|PRESSED)))// || !(Keys[KeyCode_Alt] & (DOWN|PRESSED)))
+        if(!(Keys[KeyCode_Ctrl] & (DOWN|PRESSED)))
         {
             TranslateMessage(&M);
         }

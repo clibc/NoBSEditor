@@ -208,7 +208,9 @@ main()
         
         if(GetKeyDown(Input, KeyCode_Escape))
         {
+            // TODO: Escape is somehow is WM_CHAR message?
             Is_Running = false;
+            continue;
         }
 
         if(M.message == WM_CHAR && M.wParam != VK_BACK) 
@@ -597,7 +599,7 @@ main()
             v2 CursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
             char* DebugText = (char*)FrameArenaAllocateMemory(Arena, 1000);
             s32 WrittenChar = 0;
-            WrittenChar += sprintf_s(DebugText, 1000, "DeltaTime %f\nTimePassed: %f\nElapsedTimeInMs : %f\nFPS : %f\nCursorX: %f\nCursorY: %f",
+            WrittenChar += sprintf_s(DebugText, 1000, "DeltaTime: %f\nTimePassed: %f\nElapsedTimeInMs : %f\nFPS : %f\nCursorX: %f\nCursorY: %f",
                                      DeltaTime, TimeSinceStart,
                                      ElapsedTimeInMs, 1000.0/ElapsedTimeInMs,
                                      CursorScreenPosition.x, CursorScreenPosition.y);
