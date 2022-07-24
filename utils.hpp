@@ -10,16 +10,16 @@ if(!(Expression)) { *(int*)0 = 0; }
 
 #define Megabytes(x) (x*1024*1024)
 
-struct ReadEntireFileResult
+struct read_entire_file_result
 {
     char* content;
     s64   size;
 };
 
-static ReadEntireFileResult
+static read_entire_file_result
 ReadEntireFile()
 {
-    ReadEntireFileResult result;
+    read_entire_file_result result;
     return result;
 }
 
@@ -54,17 +54,17 @@ FreeMemory(void* Memory)
     }
 }
 
-struct FrameArena
+struct frame_arena
 {
     void* BasePointer;
     u64 MaxSize;
     u64 PushOffset;
 };
 
-static FrameArena
+static frame_arena
 FrameArenaCreate(u64 Size)
 {
-    FrameArena Arena;
+    frame_arena Arena;
     Arena.MaxSize = Size;
     Arena.PushOffset = 0;
     Arena.BasePointer = AllocateMemory(Arena.MaxSize);
@@ -72,7 +72,7 @@ FrameArenaCreate(u64 Size)
 }
 
 static void*
-FrameArenaAllocateMemory(FrameArena& Arena, u64 Size)
+FrameArenaAllocateMemory(frame_arena& Arena, u64 Size)
 {
     Assert(Arena.PushOffset < Arena.MaxSize);
 
@@ -82,13 +82,13 @@ FrameArenaAllocateMemory(FrameArena& Arena, u64 Size)
 }
 
 static void
-FrameArenaReset(FrameArena& Arena)
+FrameArenaReset(frame_arena& Arena)
 {
     Arena.PushOffset = 0;
 }
 
 static void
-FrameArenaDelete(FrameArena& Arena)
+FrameArenaDelete(frame_arena& Arena)
 {
     FreeMemory(Arena.BasePointer);
     Arena.BasePointer = NULL;
@@ -96,7 +96,7 @@ FrameArenaDelete(FrameArena& Arena)
     Arena.PushOffset = 0;
 }
 
-struct TextBox
+struct text_box
 {
     f32 Width;
     f32 Height;
@@ -111,26 +111,26 @@ struct TextBox
 #define CharBotLeft  v2(0,1)
 #define CharBotRight v2(1,1)
 
-struct Line
+struct line
 {
     u32 StartIndex;
     u32 EndIndex;
 };
 
-struct CalculateLinesResult
+struct calculate_lines_result
 {
-    Line* Lines;
+    line* Lines;
     u32   Count;
     u32 MaxLinesOnScreen;
 };
 
 // Calculates line start/end in a frame
-static CalculateLinesResult
-CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize)
+static calculate_lines_result
+CalculateLines(text_box Box, frame_arena* Arena, char* Text, u32 TextSize)
 {
     // TODO : This size should be calculated by counting how many there are in the text.
     // Now I calculate all the text so maybe I need to only consider text that is on the screen.
-    Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(Line));
+    line* Lines = (line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(line));
 
     u32 LinesIndex = 0;
     u32 LineStart = 0;
@@ -151,7 +151,7 @@ CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize)
         }
     }
 
-    CalculateLinesResult Result = {};
+    calculate_lines_result Result = {};
     Result.Lines = Lines;
     Result.Count = LinesIndex;
     // TODO: Box.Height is not always WINDOW_HEIGHT!!
@@ -160,7 +160,7 @@ CalculateLines(TextBox Box, FrameArena* Arena, char* Text, u32 TextSize)
     return Result;
 }
 
-struct CreateFontTextureResult
+struct create_font_texture_result
 {
     u32 TextureID;
     u32 TextureWidth;
@@ -170,7 +170,7 @@ struct CreateFontTextureResult
     u32 CharacterHeight;
 };
 
-static CreateFontTextureResult
+static create_font_texture_result
 CreateFontTexture()
 {
     HDC DeviceContext = CreateCompatibleDC(GetDC(0));
@@ -261,7 +261,7 @@ CreateFontTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, TextureWidth, TextureHeight, 0, GL_RED, GL_UNSIGNED_BYTE, Buffer);
     
-    CreateFontTextureResult Result;
+    create_font_texture_result Result;
     Result.TextureID = Texture;
     Result.TextureWidth = TextureWidth;
     Result.TextureHeight = TextureHeight;
@@ -276,7 +276,7 @@ CreateFontTexture()
 }
 
 static v2*
-CreateFontLookupTable(const CreateFontTextureResult& FontData)
+CreateFontLookupTable(const create_font_texture_result& FontData)
 {
     v2* TextureCoords = (v2*)AllocateMemory(sizeof(v2) * 94 * 4);
 
@@ -307,14 +307,14 @@ CreateFontLookupTable(const CreateFontTextureResult& FontData)
     return TextureCoords;
 }
 
-struct Vertex
+struct vertex
 {
     v3 Position;
     v3 Color;
     s32 CharacterIndex;
 };
 
-struct CursorVertex
+struct cursor_vertex
 {
     v3 Position;
     v4 Color; // W component is cursor ID (primary, secondary)
@@ -322,7 +322,7 @@ struct CursorVertex
 };
 
 static inline v3
-TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner)
+TextBoxVertexPosition(text_box& Box, v2 CursorPosition, v2 Corner)
 {
     v3 Result = v3(Box.CharacterWidth * CursorPosition.x + Box.CharacterWidth * Corner.x,
                    (f32)WINDOW_HEIGHT - (Box.CharacterHeight * CursorPosition.y + Box.CharacterHeight * Corner.y),
@@ -331,41 +331,41 @@ TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner)
     return Result + Box.Position;
 }
 
-struct TextBoxRenderState
+struct text_box_render_state
 {
     void* ArenaMemory;
-    TextBox Box;
+    text_box Box;
     u32 BatchCount;
     u32 VAO;
     u32 VBO;
     u32 Shader;
     u32 CursorPosition;
-    CalculateLinesResult* Lines;
+    calculate_lines_result* Lines;
 };
 
-static inline TextBoxRenderState
-TextBoxBeginDraw(TextBox Box, FrameArena* Arena, CalculateLinesResult* Lines, u32 VAO, u32 VBO, u32 Shader)
+static inline text_box_render_state
+TextBoxBeginDraw(text_box Box, frame_arena* Arena, calculate_lines_result* Lines, u32 VAO, u32 VBO, u32 Shader)
 {
     Assert(Arena != NULL);
     Assert(VAO >= 0);
     Assert(VBO >= 0);
     Assert(Shader >= 0);
 
-    TextBoxRenderState S;
+    text_box_render_state S;
     S.Box = Box;
     S.VAO = VAO;
     S.VBO = VBO;
     S.Shader = Shader;
     S.CursorPosition = 0;
     S.BatchCount = 0;
-    S.ArenaMemory = FrameArenaAllocateMemory(*Arena, 1200 * sizeof(Vertex));
+    S.ArenaMemory = FrameArenaAllocateMemory(*Arena, 1200 * sizeof(vertex));
     S.Lines = Lines;
 
     return S;
 }
 
 static inline v2
-CursorTextToScreen(const CalculateLinesResult* Lines,
+CursorTextToScreen(const calculate_lines_result* Lines,
                    u32 CursorPosition)
 {
     v2 OutPosition = v2(0,0);
@@ -381,19 +381,19 @@ CursorTextToScreen(const CalculateLinesResult* Lines,
 }
 
 static inline u32
-CursorGetCurrentLine(const CalculateLinesResult* Lines,
+CursorGetCurrentLine(const calculate_lines_result* Lines,
                    u32 CursorPosition)
 {
     return (u32)CursorTextToScreen(Lines, CursorPosition).y;
 }
 
 static inline void
-TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
+TextBoxPushText(text_box_render_state& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
 {
     if(TextSize <= 0) return;
     
-    Vertex* BatchMemory = (Vertex*)State.ArenaMemory;
-    TextBox Box = State.Box;
+    vertex* BatchMemory = (vertex*)State.ArenaMemory;
+    text_box Box = State.Box;
 
     s32 StartPosition = State.CursorPosition;
     
@@ -407,7 +407,7 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
 
         v2 CursorPosition = CursorTextToScreen(State.Lines, j + StartPosition);
         
-        Vertex V;
+        vertex V;
         V.Color = TextColor;
         
         V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
@@ -439,24 +439,24 @@ TextBoxPushText(TextBoxRenderState& State, char* Text, u32 TextSize, v3 TextColo
 }
 
 static inline void
-TextBoxEndDraw(TextBoxRenderState& State)
+TextBoxEndDraw(text_box_render_state& State)
 {
     glBindVertexArray(State.VAO);
     glBindBuffer(GL_ARRAY_BUFFER, State.VBO);
     glUseProgram(State.Shader);
-    glBufferData(GL_ARRAY_BUFFER, State.BatchCount * sizeof(Vertex), State.ArenaMemory, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, State.BatchCount * sizeof(vertex), State.ArenaMemory, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, State.BatchCount);
 }
 
 static inline void
-CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, float CursorID, u32 VAO, u32 VBO, u32 Shader)
+CursorDraw(text_box Box, frame_arena* Arena, v2 CursorPosition, float CursorID, u32 VAO, u32 VBO, u32 Shader)
 {
     Assert(Arena != NULL && "TextBoxDraw Error : Arena is not assigned!");
 
-    CursorVertex* BatchMemory = (CursorVertex*)FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
+    cursor_vertex* BatchMemory = (cursor_vertex*)FrameArenaAllocateMemory(*Arena, 6 * sizeof(cursor_vertex));
     u32 BatchCurrentIndex = 0;
 
-    CursorVertex V;
+    cursor_vertex V;
     V.Color = v4(1, 1, 0, CursorID);
 
     V.Position = TextBoxVertexPosition(Box, CursorPosition, CharTopRight);
@@ -486,7 +486,7 @@ CursorDraw(TextBox Box, FrameArena* Arena, v2 CursorPosition, float CursorID, u3
     glUseProgram(Shader);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(CursorVertex), BatchMemory, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(cursor_vertex), BatchMemory, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
 }
 
@@ -611,7 +611,7 @@ LoadShaderFromFiles(const char* vertex_file_path, const char* fragment_file_path
 	return ProgramID;
 }
 
-struct SplitBuffer
+struct split_buffer
 {
     char* Start;
     u32 Middle; // First End
@@ -620,10 +620,10 @@ struct SplitBuffer
     u32 TextSize;
 };
 
-static inline SplitBuffer
+static inline split_buffer
 SplitBufferCreate(u32 Size, char* Text, u32 TextSize)
 {
-    SplitBuffer SB;
+    split_buffer SB;
     SB.Size = Size;
     SB.TextSize = TextSize;
     SB.Start = (char*)AllocateMemory(Size);
@@ -635,7 +635,7 @@ SplitBufferCreate(u32 Size, char* Text, u32 TextSize)
 }
 
 static inline void
-SplitBufferSetCursor(SplitBuffer& SB, u32 CursorPosition)
+SplitBufferSetCursor(split_buffer& SB, u32 CursorPosition)
 {
     // @TODO: Need to manage gap size based on how much of the buffer is filled
     // 20 is danger zone for now
@@ -658,7 +658,7 @@ SplitBufferSetCursor(SplitBuffer& SB, u32 CursorPosition)
 }
 
 static inline void
-SplitBufferAddChar(SplitBuffer& SB, char Character)
+SplitBufferAddChar(split_buffer& SB, char Character)
 {
     SB.Start[SB.Middle] = Character;
     SB.Middle += 1;
@@ -666,7 +666,7 @@ SplitBufferAddChar(SplitBuffer& SB, char Character)
 }
 
 static inline void
-SplitBufferRemoveCharDeleteKey(SplitBuffer& SB)
+SplitBufferRemoveCharDeleteKey(split_buffer& SB)
 {
     if(SB.Second < SB.Size && SB.Middle < SB.TextSize) {
         SB.Second += 1;
@@ -675,7 +675,7 @@ SplitBufferRemoveCharDeleteKey(SplitBuffer& SB)
 }
 
 static inline void
-SplitBufferRemoveCharBackKey(SplitBuffer& SB)
+SplitBufferRemoveCharBackKey(split_buffer& SB)
 {
     if(SB.Middle > 0) {
         SB.Middle -= 1;
@@ -683,12 +683,12 @@ SplitBufferRemoveCharBackKey(SplitBuffer& SB)
     }
 }
 
-static CalculateLinesResult
-CalculateLinesSB(const TextBox& Box, FrameArena* Arena, SplitBuffer& SB)
+static calculate_lines_result
+CalculateLinesSB(const text_box& Box, frame_arena* Arena, split_buffer& SB)
 {
     // TODO : This size should be calculated by counting how many there are in the text.
     // Now I calculate all the text so maybe I need to only consider text that is on the screen.
-    Line* Lines = (Line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(Line));
+    line* Lines = (line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(line));
 
     u32 LinesIndex = 0;
     u32 LineStart = 0;
@@ -729,7 +729,7 @@ CalculateLinesSB(const TextBox& Box, FrameArena* Arena, SplitBuffer& SB)
     }
 
 ReturnResult:
-    CalculateLinesResult Result = {};
+    calculate_lines_result Result = {};
     Result.Lines = Lines;
     Result.Count = LinesIndex;
     Result.MaxLinesOnScreen = TruncateF32ToS32(Box.Height / Box.CharacterHeight);
@@ -738,15 +738,15 @@ ReturnResult:
 }
 
 static void
-TextBoxFillColor(TextBox& Box, FrameArena* Arena, u32 VAO, u32 VBO, u32 Shader, v3 Color)
+TextBoxFillColor(text_box& Box, frame_arena* Arena, u32 VAO, u32 VBO, u32 Shader, v3 Color)
 {
     // NOTE: This is just like drawing cursor, but with different vertex positions
     // NOTE: This shader should be not effected by scrolling, so it's projection matrix stay unchanged
     glUseProgram(Shader);
-    CursorVertex* BatchMemory = (CursorVertex*)FrameArenaAllocateMemory(*Arena, 6 * sizeof(CursorVertex));
+    cursor_vertex* BatchMemory = (cursor_vertex*)FrameArenaAllocateMemory(*Arena, 6 * sizeof(cursor_vertex));
     u32 BatchCurrentIndex = 0;
 
-    CursorVertex V;
+    cursor_vertex V;
     f32 CursorID = 0.0f; // solid
     V.Color = v4(Color.r, Color.g, Color.b, CursorID);
 
@@ -784,6 +784,6 @@ TextBoxFillColor(TextBox& Box, FrameArena* Arena, u32 VAO, u32 VBO, u32 Shader, 
     glUseProgram(Shader);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(CursorVertex), BatchMemory, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(cursor_vertex), BatchMemory, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-enum KeyState
+enum key_state
 {
     NONE    = 0 << 0,
     DOWN    = 1 << 1,
@@ -8,7 +8,7 @@ enum KeyState
     UP      = 1 << 3
 };
 
-enum KeyCode
+enum key_code
 {
     KeyCode_A,
     KeyCode_B,
@@ -59,26 +59,26 @@ enum KeyCode
     KeyCode_Count
 };
 
-struct InputHandle
+struct input_handle
 {
     bool IsInitialized = false;
     bool NewInput = false;
-    KeyState* Keys;
+    key_state* Keys;
 };
 
 // TODO : More robust input system?
 
 static void
-ProcessInputWin32(InputHandle* Input, MSG& M)
+ProcessInputWin32(input_handle* Input, MSG& M)
 {
     if(!Input->IsInitialized)
     {
         Input->IsInitialized = true;
-        Input->Keys = (KeyState*)AllocateMemory(KeyCode_Count * sizeof(KeyState));
+        Input->Keys = (key_state*)AllocateMemory(KeyCode_Count * sizeof(key_state));
     }
 
-    KeyState* Keys = Input->Keys;
-    KeyState State = NONE;
+    key_state* Keys = Input->Keys;
+    key_state State = NONE;
     
     if(M.message == WM_KEYDOWN || M.message == WM_SYSKEYDOWN
        || M.message == WM_KEYUP || M.message == WM_SYSKEYUP)
@@ -278,28 +278,28 @@ ProcessInputWin32(InputHandle* Input, MSG& M)
 }
 
 static inline bool
-GetKeyDown(const InputHandle& Input, KeyCode Key)
+GetKeyDown(const input_handle& Input, key_code Key)
 {
     if(!Input.NewInput) return false;
     return Input.Keys[Key] == DOWN;
 }
 
 static inline bool
-GetKeyUp(const InputHandle& Input, KeyCode Key)
+GetKeyUp(const input_handle& Input, key_code Key)
 {
     if(!Input.NewInput) return false;
     return Input.Keys[Key] == UP;
 }
 
 static inline bool
-GetKeyPressed(const InputHandle& Input, KeyCode Key)
+GetKeyPressed(const input_handle& Input, key_code Key)
 {
     if(!Input.NewInput) return false;
     return Input.Keys[Key] == PRESSED;
 }
 
 static inline bool
-GetKey(const InputHandle& Input, KeyCode Key)
+GetKey(const input_handle& Input, key_code Key)
 {
     if(!Input.NewInput) return false;
     return (Input.Keys[Key] & (DOWN|PRESSED)) > 1;

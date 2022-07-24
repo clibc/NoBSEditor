@@ -66,7 +66,7 @@ main()
                                             WINDOW_WIDTH, WINDOW_HEIGHT);
     Device_Context = GetDC(window_handle);
     
-    CreateFontTextureResult TextureData = CreateFontTexture();
+    create_font_texture_result TextureData = CreateFontTexture();
     v2* TextureLookupTable = CreateFontLookupTable(TextureData);
 
     // NOTE: Define orthographic projection
@@ -95,9 +95,9 @@ main()
     glBindVertexArray(TextVAO);
     glGenBuffers(1, &TextVBO);
     glBindBuffer(GL_ARRAY_BUFFER, TextVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(v3));
-    glVertexAttribIPointer(2, 1, GL_INT, sizeof(Vertex), (void*)(sizeof(v3)*2));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)sizeof(v3));
+    glVertexAttribIPointer(2, 1, GL_INT, sizeof(vertex), (void*)(sizeof(v3)*2));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
@@ -107,9 +107,9 @@ main()
     glBindVertexArray(CursorVAO);
     glGenBuffers(1, &CursorVBO);
     glBindBuffer(GL_ARRAY_BUFFER, CursorVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), 0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), (void*)sizeof(v3));
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(CursorVertex), (void*)(sizeof(v3) + sizeof(v4)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(cursor_vertex), 0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(cursor_vertex), (void*)sizeof(v3));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(cursor_vertex), (void*)(sizeof(v3) + sizeof(v4)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
@@ -140,14 +140,14 @@ main()
     WarnIfNot(TextureLookupTableLocationScreen >= 0);
     FreeMemory(TextureLookupTable);
 
-    FrameArena Arena = FrameArenaCreate(Megabytes(2));
+    frame_arena Arena = FrameArenaCreate(Megabytes(2));
     
-    TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, {200,0,0}};
-    TextBox DebugBox = {400, 200, Scale.x, Scale.y, {WINDOW_WIDTH - 400,0,0}};
+    text_box Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, {200,0,0}};
+    text_box DebugBox = {400, 200, Scale.x, Scale.y, {WINDOW_WIDTH - 400,0,0}};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n} TestText1\nTestText2\nTestText3\nTestText4\nTestText5\nTestText6\nTestText7\nTestText8\nTestText9\nTestText10";
-    SplitBuffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
-    CalculateLinesResult Lines = CalculateLinesSB(Box, &Arena, SB);
+    split_buffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
+    calculate_lines_result Lines = CalculateLinesSB(Box, &Arena, SB);
 
     u32 PrimaryCursorPos = 0;
     u32 SecondaryCursorPos = 0;
@@ -171,13 +171,13 @@ main()
     f64 ElapsedTimeInMs = 0;
     //
     
-    InputHandle Input;
+    input_handle Input;
     MSG M = {};
     ProcessInputWin32(&Input,M);
     while(Is_Running)
     {
         M = {};
-        KeyState* Keys = Input.Keys;
+        key_state* Keys = Input.Keys;
         for(s32 I = 0; I < KeyCode_Count; ++I)
         {
             if(I != KeyCode_Ctrl && I != KeyCode_Alt)
@@ -590,7 +590,7 @@ main()
         CursorDraw(Box, &Arena, PrimaryCursorScreenPosition, 0.0f, CursorVAO, CursorVBO, CursorShader);
         CursorDraw(Box, &Arena, SecondaryCursorScreenPosition, 1.0f, CursorVAO, CursorVBO, CursorShader);
 
-        TextBoxRenderState RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
+        text_box_render_state RenderState = TextBoxBeginDraw(Box, &Arena, &Lines, TextVAO, TextVBO, TextShader);
         TextBoxPushText(RenderState, SB.Start, SB.Middle, v3(1,0,1));
         TextBoxPushText(RenderState, SB.Start + SB.Second, SB.TextSize - SB.Middle, TextColor);
         TextBoxEndDraw(RenderState);
@@ -606,7 +606,7 @@ main()
             WrittenChar += sprintf_s(DebugText + WrittenChar, 1000-WrittenChar, "\nIsCursorMoved : %s", IsCursorMoved ? "true" : "false");
             static u64 LastFrameUsedArena = Arena.PushOffset;
             WrittenChar += sprintf_s(DebugText + WrittenChar, 1000-WrittenChar, "\nFrame Arena Used : %Iu bytes", LastFrameUsedArena + 1);
-            CalculateLinesResult DebugLines = CalculateLines(DebugBox, &Arena, DebugText, WrittenChar);
+            calculate_lines_result DebugLines = CalculateLines(DebugBox, &Arena, DebugText, WrittenChar);
             TextBoxFillColor(DebugBox, &Arena, CursorVAO, CursorVBO, ScreenSpaceBoxShader, v3(95.0f/255.0f, 110.0f/255.0f, 133.0f/255.0f));
             RenderState = TextBoxBeginDraw(DebugBox, &Arena, &DebugLines, TextVAO, TextVBO, ScreenSpaceTextShader);
             TextBoxPushText(RenderState, DebugText, WrittenChar, v3(0,1,0));
