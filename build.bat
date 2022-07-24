@@ -5,5 +5,6 @@ pushd _build
       REM Oi: use compiler intrinsics
       REM /EHa-: exeption handling stuff
       REM /GR- : disable runtime type information
+      REM for padding warnings add: /we4820 /we4121
       cl /Od /Oi /GR- /EHa- /FC /nologo /EHsc /Zi /W4 /WX /wd4100 /wd4505 ..\main.cpp /link user32.lib OpenGL32.lib Gdi32.lib Winmm.lib /SUBSYSTEM:CONSOLE
 popd

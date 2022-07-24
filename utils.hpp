@@ -13,7 +13,7 @@ if(!(Expression)) { *(int*)0 = 0; }
 struct ReadEntireFileResult
 {
     char* content;
-    s32   size;
+    s64   size;
 };
 
 static ReadEntireFileResult
@@ -333,8 +333,8 @@ TextBoxVertexPosition(TextBox& Box, v2 CursorPosition, v2 Corner)
 
 struct TextBoxRenderState
 {
-    TextBox Box;
     void* ArenaMemory;
+    TextBox Box;
     u32 BatchCount;
     u32 VAO;
     u32 VBO;

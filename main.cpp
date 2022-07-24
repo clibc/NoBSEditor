@@ -143,7 +143,7 @@ main()
     FrameArena Arena = FrameArenaCreate(Megabytes(2));
     
     TextBox Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, {200,0,0}};
-    TextBox DebugBox = {300, 160, Scale.x, Scale.y, {WINDOW_WIDTH - 300,0,0}};
+    TextBox DebugBox = {400, 200, Scale.x, Scale.y, {WINDOW_WIDTH - 400,0,0}};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n} TestText1\nTestText2\nTestText3\nTestText4\nTestText5\nTestText6\nTestText7\nTestText8\nTestText9\nTestText10";
     SplitBuffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
@@ -599,16 +599,19 @@ main()
             v2 CursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
             char* DebugText = (char*)FrameArenaAllocateMemory(Arena, 1000);
             s32 WrittenChar = 0;
-            WrittenChar += sprintf_s(DebugText, 1000, "DeltaTime: %f\nTimePassed: %f\nElapsedTimeInMs : %f\nFPS : %f\nCursorX: %f\nCursorY: %f",
+            WrittenChar += sprintf_s(DebugText, 1000, "DeltaTime: %.5fs\nTimePassed: %.3fs\nElapsedTimeInMs : %.3f\nFPS : %f\nCursorX: %f\nCursorY: %f",
                                      DeltaTime, TimeSinceStart,
                                      ElapsedTimeInMs, 1000.0/ElapsedTimeInMs,
                                      CursorScreenPosition.x, CursorScreenPosition.y);
             WrittenChar += sprintf_s(DebugText + WrittenChar, 1000-WrittenChar, "\nIsCursorMoved : %s", IsCursorMoved ? "true" : "false");
+            static u64 LastFrameUsedArena = Arena.PushOffset;
+            WrittenChar += sprintf_s(DebugText + WrittenChar, 1000-WrittenChar, "\nFrame Arena Used : %Iu bytes", LastFrameUsedArena + 1);
             CalculateLinesResult DebugLines = CalculateLines(DebugBox, &Arena, DebugText, WrittenChar);
             TextBoxFillColor(DebugBox, &Arena, CursorVAO, CursorVBO, ScreenSpaceBoxShader, v3(95.0f/255.0f, 110.0f/255.0f, 133.0f/255.0f));
             RenderState = TextBoxBeginDraw(DebugBox, &Arena, &DebugLines, TextVAO, TextVBO, ScreenSpaceTextShader);
             TextBoxPushText(RenderState, DebugText, WrittenChar, v3(0,1,0));
             TextBoxEndDraw(RenderState);
+            LastFrameUsedArena = Arena.PushOffset;
         }
         
         glFlush();
