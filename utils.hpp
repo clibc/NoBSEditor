@@ -10,19 +10,6 @@ if(!(Expression)) { *(int*)0 = 0; }
 
 #define Megabytes(x) (x*1024*1024)
 
-struct read_entire_file_result
-{
-    char* content;
-    s64   size;
-};
-
-static read_entire_file_result
-ReadEntireFile()
-{
-    read_entire_file_result result;
-    return result;
-}
-
 static void*
 AllocateMemory(u64 Size)
 {
@@ -52,6 +39,51 @@ FreeMemory(void* Memory)
         }
         Assert(Result);
     }
+}
+
+struct read_entire_file_result
+{
+    char* Content;
+    s64   Size;
+};
+
+static bool
+ReadEntireFile(read_entire_file_result* Result, const char* FilePath)
+{
+    HANDLE FileHandle = CreateFileA(FilePath,
+                                    GENERIC_READ,
+                                    0, // Maybe not?
+                                    NULL,
+                                    OPEN_EXISTING,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    NULL);
+    bool IsRead = false;    
+    
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD HighFileSize;
+        DWORD FileSize = GetFileSize(FileHandle, &HighFileSize);
+        char* FileBuffer = (char*)AllocateMemory(FileSize);
+
+        IsRead = ReadFile(FileHandle, 
+                               FileBuffer,
+                               FileSize,
+                               NULL,
+                               NULL);
+        if(IsRead)
+        {
+            Result->Content = FileBuffer;
+            Result->Size = FileSize;
+        }
+        else
+        {
+            FreeMemory(FileBuffer);
+        }
+    }
+    
+    CloseHandle(FileHandle);
+    
+    return IsRead;
 }
 
 struct frame_arena
@@ -519,40 +551,28 @@ LoadShaderFromFiles(const char* vertex_file_path, const char* fragment_file_path
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// Read the Vertex Shader code from the file
-	std::string VertexShaderCode;
-	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
-	if(VertexShaderStream.is_open())
-    {
-		std::stringstream sstr;
-		sstr << VertexShaderStream.rdbuf();
-		VertexShaderCode = sstr.str();
-		VertexShaderStream.close();
-	}
-    else
+    read_entire_file_result VertexShaderFile;
+    if(!ReadEntireFile(&VertexShaderFile, vertex_file_path))
     {
 		DebugLog("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
 		getchar();
 		exit(-1);
-	}
+    }
 
-	// Read the Fragment Shader code from the file
-	std::string FragmentShaderCode;
-	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
-
-	if(FragmentShaderStream.is_open())
+    read_entire_file_result FragmentShaderFile;
+    if(!ReadEntireFile(&FragmentShaderFile, fragment_file_path))
     {
-		std::stringstream sstr;
-		sstr << FragmentShaderStream.rdbuf();
-		FragmentShaderCode = sstr.str();
-		FragmentShaderStream.close();
-	}
+		DebugLog("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", fragment_file_path);
+		getchar();
+		exit(-1);
+    }
 
 	GLint Result = GL_FALSE;
 	int InfoLogLength;
 
 	// Compile Vertex Shader
 	DebugLog("Compiling shader : %s\n", vertex_file_path);
-	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	char const * VertexSourcePointer = VertexShaderFile.Content;
 	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
 	glCompileShader(VertexShaderID);
 
@@ -561,15 +581,16 @@ LoadShaderFromFiles(const char* vertex_file_path, const char* fragment_file_path
 	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if (InfoLogLength > 0)
     {
-		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+        char* VertexShaderErrorMessage = (char*)AllocateMemory(InfoLogLength+1);
 		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
 		DebugLog("%s\n", &VertexShaderErrorMessage[0]);
+        FreeMemory(VertexShaderErrorMessage);
         exit(-1);
 	}
 
 	// Compile Fragment Shader
 	DebugLog("Compiling shader : %s\n", fragment_file_path);
-	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	char const * FragmentSourcePointer = FragmentShaderFile.Content;
 	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
 	glCompileShader(FragmentShaderID);
 
@@ -578,9 +599,10 @@ LoadShaderFromFiles(const char* vertex_file_path, const char* fragment_file_path
 	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if (InfoLogLength > 0)
     {
-		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+        char* FragmentShaderErrorMessage = (char*)AllocateMemory(InfoLogLength+1);
 		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
 		DebugLog("%s\n", &FragmentShaderErrorMessage[0]);
+        FreeMemory(FragmentShaderErrorMessage);
         exit(-1);
 	}
 
@@ -608,6 +630,8 @@ LoadShaderFromFiles(const char* vertex_file_path, const char* fragment_file_path
 	glDeleteShader(VertexShaderID);
 	glDeleteShader(FragmentShaderID);
 
+    FreeMemory(VertexShaderFile.Content);
+    FreeMemory(FragmentShaderFile.Content);
 	return ProgramID;
 }
 
