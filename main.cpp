@@ -84,11 +84,6 @@ main()
 
     GLuint TextShader   = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
     GLuint CursorShader = LoadShaderFromFiles("../shaders/cursor_vertex.shader", "../shaders/cursor_frag.shader");
-    // NOTE: This is for drawing color filled boxes
-    // NOTE: Ortho matrix does not change when scrolling
-    // NOTE: Used for debugging for now
-    GLuint ScreenSpaceBoxShader = LoadShaderFromFiles("../shaders/cursor_vertex.shader", "../shaders/cursor_frag.shader");
-    GLuint ScreenSpaceTextShader = LoadShaderFromFiles("../shaders/vert.shader", "../shaders/frag.shader");
 
     GLuint TextVAO, TextVBO;
     glGenVertexArrays(1, &TextVAO);
@@ -121,23 +116,12 @@ main()
     glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
     glUniform2fv(TextureLookupTableLocation, 94 * 4, (f32*)TextureLookupTable);
 
-    glUseProgram(ScreenSpaceTextShader);
-    u32 OrthoMatrixLocationScreen = glGetUniformLocation(ScreenSpaceTextShader, "OrthoMatrix");
-    u32 TextureLookupTableLocationScreen = glGetUniformLocation(ScreenSpaceTextShader, "TextureLookupTable");
-    glUniformMatrix4fv(OrthoMatrixLocationScreen, 1, GL_TRUE, (f32*)&OrthoMatrix);
-    glUniform2fv(TextureLookupTableLocationScreen, 94 * 4, (f32*)TextureLookupTable);
-
     glUseProgram(CursorShader);
-    glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
-
-    glUseProgram(ScreenSpaceBoxShader);
     glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
 
     WarnIfNot(OrthoMatrixLocation >= 0);
     WarnIfNot(OrthoMatrixLocationCursor >= 0);
     WarnIfNot(TextureLookupTableLocation >= 0);
-    WarnIfNot(OrthoMatrixLocationScreen >= 0);
-    WarnIfNot(TextureLookupTableLocationScreen >= 0);
     FreeMemory(TextureLookupTable);
 
     frame_arena Arena = FrameArenaCreate(Megabytes(2));
@@ -154,10 +138,7 @@ main()
     bool IsCursorMoved = false;
 
     // Scroll interpolation
-    f32 CurrentTop = Top;
-    f32 CurrentBottom = Bottom;
-    f32 TargetTop = Top;
-    f32 TargetBottom = Bottom;
+    f32 TextBoxTargetY = 0;
     f32 ScrollSpeeed = 15;
     //
 
@@ -568,22 +549,13 @@ main()
         if(Scroll)
         {
             f32 AdvanceSize = FirstLineIndexOnScreen * Box.CharacterHeight;
-            TargetTop = Top - AdvanceSize;
-            TargetBottom = Bottom - AdvanceSize;
+            TextBoxTargetY = AdvanceSize;
         }
 
         { // TODO : stop when interpolation is done
             f32 T = ScrollSpeeed * DeltaTime;
-            CurrentTop = Lerp(CurrentTop, TargetTop, T);
-            CurrentBottom = Lerp(CurrentBottom, TargetBottom, T);
-            OrthoMatrix = MakeOrthoMatrix(Left, Right, CurrentTop, CurrentBottom,
-                                          Near, Far);
-            glUseProgram(TextShader);
-            glUniformMatrix4fv(OrthoMatrixLocation, 1, GL_TRUE, (f32*)&OrthoMatrix);
-            glUseProgram(CursorShader);
-            glUniformMatrix4fv(OrthoMatrixLocationCursor, 1, GL_TRUE, (f32*)&OrthoMatrix);
+            Box.Position.y = Lerp(Box.Position.y, TextBoxTargetY, T);
         }
-        // Scroll End
                 
         v2 PrimaryCursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
         v2 SecondaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
@@ -607,8 +579,8 @@ main()
             static u64 LastFrameUsedArena = Arena.PushOffset;
             WrittenChar += sprintf_s(DebugText + WrittenChar, 1000-WrittenChar, "\nFrame Arena Used : %Iu bytes", LastFrameUsedArena + 1);
             calculate_lines_result DebugLines = CalculateLines(DebugBox, &Arena, DebugText, WrittenChar);
-            TextBoxFillColor(DebugBox, &Arena, CursorVAO, CursorVBO, ScreenSpaceBoxShader, v3(95.0f/255.0f, 110.0f/255.0f, 133.0f/255.0f));
-            RenderState = TextBoxBeginDraw(DebugBox, &Arena, &DebugLines, TextVAO, TextVBO, ScreenSpaceTextShader);
+            TextBoxFillColor(DebugBox, &Arena, CursorVAO, CursorVBO, CursorShader, v3(95.0f/255.0f, 110.0f/255.0f, 133.0f/255.0f));
+            RenderState = TextBoxBeginDraw(DebugBox, &Arena, &DebugLines, TextVAO, TextVBO, TextShader);
             TextBoxPushText(RenderState, DebugText, WrittenChar, v3(0,1,0));
             TextBoxEndDraw(RenderState);
             LastFrameUsedArena = Arena.PushOffset;
