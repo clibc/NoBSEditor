@@ -1,10 +1,5 @@
 #pragma once
 
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <vector>
-
 #define Assert(Expression)                      \
 if(!(Expression)) { *(int*)0 = 0; }
 
@@ -618,9 +613,10 @@ LoadShaderFromFiles(const char* vertex_file_path, const char* fragment_file_path
 	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if (InfoLogLength > 0)
     {
-		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+	    char* ProgramErrorMessage = (char*)AllocateMemory(InfoLogLength+1);
 		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
 		DebugLog("%s\n", &ProgramErrorMessage[0]);
+        FreeMemory(ProgramErrorMessage);
         exit(-1);
 	}
 	

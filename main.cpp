@@ -465,9 +465,6 @@ main()
             Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2};
         }
         
-        glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
         Lines = CalculateLinesSB(Box, &Arena, SB);
 
         // Scroll Stuff
@@ -556,6 +553,10 @@ main()
             f32 T = ScrollSpeeed * DeltaTime;
             Box.Position.y = Lerp(Box.Position.y, TextBoxTargetY, T);
         }
+
+        // @NOTE: Render
+        glClearColor(30.0f/255.0f,30.0f/255.0f,30.0f/255.0f,30.0f/255.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
                 
         v2 PrimaryCursorScreenPosition = CursorTextToScreen(&Lines, PrimaryCursorPos);
         v2 SecondaryCursorScreenPosition = CursorTextToScreen(&Lines, SecondaryCursorPos);
