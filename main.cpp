@@ -21,14 +21,6 @@ static s32 TextSize = 0;
 static s32 ClipboardSize = 0;
 static u32 FirstLineIndexOnScreen = 0;
 
-static inline s64
-GetPerformanceCounter()
-{
-    LARGE_INTEGER Ticks;
-    Assert(QueryPerformanceCounter(&Ticks))
-    return Ticks.QuadPart;
-}
-
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 {
     switch (uMsg) 
@@ -127,7 +119,7 @@ main()
     frame_arena Arena = FrameArenaCreate(Megabytes(2));
     
     text_box Box = {WINDOW_WIDTH, WINDOW_HEIGHT, Scale.x*2, Scale.y*2, {200,0,0}};
-    text_box DebugBox = {400, 200, Scale.x, Scale.y, {WINDOW_WIDTH - 400,0,0}};
+    text_box DebugBox = {400, 180, Scale.x, Scale.y, {WINDOW_WIDTH - 400,0,0}};
     
     char* FillText = "Test text thomg\n\n\nldsaoflasdfoasd f\nint main() {\nreturn 0;\n} TestText1\nTestText2\nTestText3\nTestText4\nTestText5\nTestText6\nTestText7\nTestText8\nTestText9\nTestText10";
     split_buffer SB = SplitBufferCreate(1024, FillText, (u32)strlen(FillText));
@@ -478,11 +470,7 @@ main()
             LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
             if(CursorCurrentLineIndex > LastLineIndexOnScreen)
             {
-                // TODO : Add CursorSetLine() function for this
-                s32 CursorX = PrimaryCursorPos - Lines.Lines[CursorCurrentLineIndex].StartIndex;
-                PrimaryCursorPos = Clamp((s32)Lines.Lines[LastLineIndexOnScreen].StartIndex + CursorX,
-                                         (s32)Lines.Lines[LastLineIndexOnScreen].StartIndex,
-                                         (s32)Lines.Lines[LastLineIndexOnScreen].EndIndex);
+                PrimaryCursorPos = CursorSetLine(PrimaryCursorPos, CursorCurrentLineIndex, LastLineIndexOnScreen, Lines);
                 CursorCurrentLineIndex = LastLineIndexOnScreen;
                 IsCursorMoved = true;
             }
@@ -497,11 +485,7 @@ main()
             LastLineIndexOnScreen = FirstLineIndexOnScreen + Lines.MaxLinesOnScreen - 1;
             if(CursorCurrentLineIndex < FirstLineIndexOnScreen)
             {
-                // TODO : Add CursorSetLine() function for this
-                s32 CursorX = PrimaryCursorPos - Lines.Lines[CursorCurrentLineIndex].StartIndex;
-                PrimaryCursorPos = Clamp((s32)Lines.Lines[FirstLineIndexOnScreen].StartIndex + CursorX,
-                                         (s32)Lines.Lines[FirstLineIndexOnScreen].StartIndex,
-                                         (s32)Lines.Lines[FirstLineIndexOnScreen].EndIndex);
+                PrimaryCursorPos = CursorSetLine(PrimaryCursorPos, CursorCurrentLineIndex, FirstLineIndexOnScreen, Lines);
                 CursorCurrentLineIndex = FirstLineIndexOnScreen;
                 IsCursorMoved = true;
             }

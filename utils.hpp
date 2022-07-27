@@ -414,6 +414,16 @@ CursorGetCurrentLine(const calculate_lines_result* Lines,
     return (u32)CursorTextToScreen(Lines, CursorPosition).y;
 }
 
+static inline u32
+CursorSetLine(u32 CursorCurrentPosition, u32 CursorCurrentLineIndex, u32 LineIndex, const calculate_lines_result& Lines)
+{
+    s32 CursorX = CursorCurrentPosition - Lines.Lines[CursorCurrentLineIndex].StartIndex;
+    return Clamp((s32)Lines.Lines[LineIndex].StartIndex + CursorX,
+                             (s32)Lines.Lines[LineIndex].StartIndex,
+                             (s32)Lines.Lines[LineIndex].EndIndex);
+
+}
+
 static inline void
 TextBoxPushText(text_box_render_state& State, char* Text, u32 TextSize, v3 TextColor = v3(1,1,1))
 {
@@ -680,6 +690,7 @@ SplitBufferSetCursor(split_buffer& SB, u32 CursorPosition)
 static inline void
 SplitBufferAddChar(split_buffer& SB, char Character)
 {
+    Assert(SB.Second - SB.Middle > 20);
     SB.Start[SB.Middle] = Character;
     SB.Middle += 1;
     SB.TextSize += 1;
@@ -708,7 +719,7 @@ CalculateLinesSB(const text_box& Box, frame_arena* Arena, split_buffer& SB)
 {
     // TODO : This size should be calculated by counting how many there are in the text.
     // Now I calculate all the text so maybe I need to only consider text that is on the screen.
-    line* Lines = (line*)FrameArenaAllocateMemory(*Arena, 1000 * sizeof(line));
+    line* Lines = (line*)FrameArenaAllocateMemory(*Arena, 100000 * sizeof(line));
 
     u32 LinesIndex = 0;
     u32 LineStart = 0;
@@ -725,6 +736,7 @@ CalculateLinesSB(const text_box& Box, frame_arena* Arena, split_buffer& SB)
     u32 Index = 0;
     for(u32 I = 0; I < SB.Second + (SB.TextSize - SB.Middle); ++I)
     {
+        // @TODO : Sometimes this loop never ends! Because SB.Second == SB.Middle
         if(I == SB.Middle)
         {
             I = SB.Second - 1;
@@ -806,4 +818,12 @@ TextBoxFillColor(text_box& Box, frame_arena* Arena, u32 VAO, u32 VBO, u32 Shader
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, BatchCurrentIndex * sizeof(cursor_vertex), BatchMemory, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, BatchCurrentIndex);
+}
+
+static inline s64
+GetPerformanceCounter()
+{
+    LARGE_INTEGER Ticks;
+    Assert(QueryPerformanceCounter(&Ticks))
+    return Ticks.QuadPart;
 }
