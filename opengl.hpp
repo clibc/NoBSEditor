@@ -2,7 +2,7 @@
 #include <GL/gl.h>
 #include <assert.h>
 
-#define ENTRY __stdcall 
+#define ENTRY __stdcall
 
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
@@ -36,35 +36,66 @@
 typedef ptrdiff_t GLsizeiptr;
 typedef char GLchar;
 
-void (ENTRY *glGenBuffers)(GLsizei,GLuint*);
-void (ENTRY *glBindBuffer)(GLenum, GLuint);
-void (ENTRY *glBufferData)(GLenum, GLsizeiptr, const GLvoid*, GLenum);
-void (ENTRY *glShaderSource)(GLuint, GLsizei, const GLchar**, const GLint*);
-void (ENTRY *glCompileShader)(GLuint);
-void (ENTRY *glGetShaderiv)(GLuint, GLenum, GLint*);
-void (ENTRY *glGetShaderInfoLog)(GLuint, GLsizei, GLsizei*, GLchar*);
-void (ENTRY *glAttachShader)(GLuint, GLuint);
-void (ENTRY *glGetProgramiv)(GLuint, GLenum, GLint*);
-void (ENTRY *glDetachShader)(GLuint, GLuint);
-void (ENTRY *glDeleteShader)(GLuint);
-void (ENTRY *glLinkProgram)(GLuint);
-void (ENTRY *glGetProgramInfoLog)(GLuint, GLsizei, GLsizei*, GLchar*);
-GLuint (ENTRY *glCreateShader)(GLenum);
-GLuint (ENTRY *glCreateProgram)(void);
-void (ENTRY *glVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
-void (ENTRY *glVertexAttribIPointer)(GLuint, GLint, GLenum, GLsizei, const GLvoid*);
-void (ENTRY *glEnableVertexAttribArray)(GLuint);
-void (ENTRY *glUseProgram)(GLuint);
-void (ENTRY *glGenVertexArrays)(GLsizei n,GLuint *arrays);
-void (ENTRY *glBindVertexArray)(GLuint);
-HGLRC (ENTRY *wglCreateContextAttribsARB)(HDC, HGLRC, const int*);
-void (ENTRY *glUniformMatrix4fv)(GLint, GLsizei, GLboolean, const GLfloat*);
-GLint (ENTRY *glGetAttribLocation)(GLuint, const GLchar*);
-GLint (ENTRY *glGetUniformLocation)(GLuint, const GLchar*);
-void  (ENTRY *glUniform3fv)(GLuint, GLsizei, const GLfloat*);
-void  (ENTRY *glUniform2fv)(GLuint, GLsizei, const GLfloat*);
-void  (ENTRY *glUniform1i)(GLuint, GLint);
-bool  (ENTRY *wglChoosePixelFormatARB)(HDC, const int*, const FLOAT *, UINT, int*, UINT*);
+typedef void (ENTRY *TglGenBuffers)(GLsizei,GLuint*);
+typedef void (ENTRY *TglBufferData)(GLenum, GLsizeiptr, const GLvoid*, GLenum);
+typedef void (ENTRY *TglBindBuffer)(GLenum, GLuint);
+typedef void (ENTRY *TglBufferData)(GLenum, GLsizeiptr, const GLvoid*, GLenum);
+typedef void (ENTRY *TglShaderSource)(GLuint, GLsizei, const GLchar**, const GLint*);
+typedef void (ENTRY *TglCompileShader)(GLuint);
+typedef void (ENTRY *TglGetShaderiv)(GLuint, GLenum, GLint*);
+typedef void (ENTRY *TglGetShaderInfoLog)(GLuint, GLsizei, GLsizei*, GLchar*);
+typedef void (ENTRY *TglAttachShader)(GLuint, GLuint);
+typedef void (ENTRY *TglGetProgramiv)(GLuint, GLenum, GLint*);
+typedef void (ENTRY *TglDetachShader)(GLuint, GLuint);
+typedef void (ENTRY *TglDeleteShader)(GLuint);
+typedef void (ENTRY *TglLinkProgram)(GLuint);
+typedef void (ENTRY *TglGetProgramInfoLog)(GLuint, GLsizei, GLsizei*, GLchar*);
+typedef GLuint (ENTRY *TglCreateShader)(GLenum);
+typedef GLuint (ENTRY *TglCreateProgram)(void);
+typedef void (ENTRY *TglVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
+typedef void (ENTRY *TglVertexAttribIPointer)(GLuint, GLint, GLenum, GLsizei, const GLvoid*);
+typedef void (ENTRY *TglEnableVertexAttribArray)(GLuint);
+typedef void (ENTRY *TglUseProgram)(GLuint);
+typedef void (ENTRY *TglGenVertexArrays)(GLsizei n,GLuint *arrays);
+typedef void (ENTRY *TglBindVertexArray)(GLuint);
+typedef HGLRC (ENTRY *TwglCreateContextAttribsARB)(HDC, HGLRC, const int*);
+typedef void (ENTRY *TglUniformMatrix4fv)(GLint, GLsizei, GLboolean, const GLfloat*);
+typedef GLint (ENTRY *TglGetAttribLocation)(GLuint, const GLchar*);
+typedef GLint (ENTRY *TglGetUniformLocation)(GLuint, const GLchar*);
+typedef void  (ENTRY *TglUniform3fv)(GLuint, GLsizei, const GLfloat*);
+typedef void  (ENTRY *TglUniform2fv)(GLuint, GLsizei, const GLfloat*);
+typedef void  (ENTRY *TglUniform1i)(GLuint, GLint);
+typedef bool  (ENTRY *TwglChoosePixelFormatARB)(HDC, const int*, const FLOAT *, UINT, int*, UINT*);
+
+TglGenBuffers glGenBuffers;
+TglBufferData glBufferData;
+TglBindBuffer glBindBuffer;
+TglShaderSource glShaderSource;
+TglCompileShader glCompileShader;
+TglGetShaderiv glGetShaderiv;
+TglGetShaderInfoLog glGetShaderInfoLog;
+TglAttachShader glAttachShader;
+TglGetProgramiv glGetProgramiv;
+TglDetachShader glDetachShader;
+TglDeleteShader glDeleteShader;
+TglLinkProgram glLinkProgram;
+TglGetProgramInfoLog glGetProgramInfoLog;
+TglCreateShader glCreateShader;
+TglCreateProgram glCreateProgram;
+TglVertexAttribPointer glVertexAttribPointer;
+TglVertexAttribIPointer glVertexAttribIPointer;
+TglEnableVertexAttribArray glEnableVertexAttribArray;
+TglUseProgram glUseProgram;
+TglGenVertexArrays glGenVertexArrays;
+TglBindVertexArray glBindVertexArray;
+TwglCreateContextAttribsARB wglCreateContextAttribsARB;
+TglUniformMatrix4fv glUniformMatrix4fv;
+TglGetAttribLocation glGetAttribLocation;
+TglGetUniformLocation glGetUniformLocation;
+TglUniform3fv glUniform3fv;
+TglUniform2fv glUniform2fv;
+TglUniform1i glUniform1i;
+TwglChoosePixelFormatARB wglChoosePixelFormatARB;
 
 static void*
 GetFuncAddress(const char *name)
@@ -83,35 +114,35 @@ GetFuncAddress(const char *name)
 static void
 LoadOpenGLFuncs()
 {
-    glGenBuffers = (void (ENTRY*)(GLsizei,GLuint*))GetFuncAddress("glGenBuffers");
-    glBindBuffer = (void (ENTRY*)(GLenum, GLuint))GetFuncAddress("glBindBuffer");
-    glBufferData = (void (ENTRY*)(GLenum, GLsizeiptr, const GLvoid*, GLenum))GetFuncAddress("glBufferData");
-    glShaderSource = (void (ENTRY*)(GLuint, GLsizei, const GLchar**, const GLint*))GetFuncAddress("glShaderSource");
-    glCompileShader = (void (ENTRY*)(GLuint))GetFuncAddress("glCompileShader");
-    glGetShaderiv = (void (ENTRY*)(GLuint, GLenum, GLint*))GetFuncAddress("glGetShaderiv");
-    glGetShaderInfoLog = (void (ENTRY*)(GLuint, GLsizei, GLsizei*, GLchar*))GetFuncAddress("glGetShaderInfoLog");
-    glAttachShader = (void (ENTRY*)(GLuint, GLuint))GetFuncAddress("glAttachShader");
-    glGetProgramiv = (void (ENTRY*)(GLuint, GLenum, GLint*))GetFuncAddress("glGetProgramiv");
-    glDetachShader = (void (ENTRY*)(GLuint, GLuint))GetFuncAddress("glDetachShader");
-    glDeleteShader = (void (ENTRY*)(GLuint))GetFuncAddress("glDeleteShader");
-    glCreateShader = (GLuint (ENTRY*)(GLenum))GetFuncAddress("glCreateShader");
-    glCreateProgram = (GLuint(ENTRY*)(void))GetFuncAddress("glCreateProgram");
-    glLinkProgram = (void (ENTRY*)(GLuint))GetFuncAddress("glLinkProgram");
-    glGetProgramInfoLog = (void (ENTRY*)(GLuint, GLsizei, GLsizei*, GLchar*))GetFuncAddress("glGetProgramInfoLog");
-    glVertexAttribPointer =  (void (ENTRY*)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*))GetFuncAddress("glVertexAttribPointer");
-    glVertexAttribIPointer =  (void (ENTRY*)(GLuint, GLint, GLenum, GLsizei, const GLvoid*))GetFuncAddress("glVertexAttribIPointer");
-    glEnableVertexAttribArray = (void (ENTRY*)(GLuint))GetFuncAddress("glEnableVertexAttribArray");
-    glUseProgram = (void (ENTRY*)(GLuint))GetFuncAddress("glUseProgram");
-    wglCreateContextAttribsARB = (HGLRC (ENTRY *)(HDC, HGLRC, const int*))GetFuncAddress("wglCreateContextAttribsARB");
-    glGenVertexArrays = (void (ENTRY*)(GLsizei n,GLuint *arrays))GetFuncAddress("glGenVertexArrays");
-    glBindVertexArray = (void (ENTRY*)(GLuint))GetFuncAddress("glBindVertexArray");
-    glUniformMatrix4fv = (void (ENTRY*)(GLint, GLsizei,	GLboolean, const GLfloat*))GetFuncAddress("glUniformMatrix4fv");
-    glGetAttribLocation = (GLint (ENTRY*)(GLuint,const GLchar*))GetFuncAddress("glGetAttribLocation");
-    glGetUniformLocation = (GLint (ENTRY*)(GLuint,const GLchar*))GetFuncAddress("glGetUniformLocation");
-    glUniform3fv = (void (ENTRY*)(GLuint, GLsizei, const GLfloat*))GetFuncAddress("glUniform3fv");
-    glUniform2fv = (void (ENTRY*)(GLuint, GLsizei, const GLfloat*))GetFuncAddress("glUniform2fv");
-    glUniform1i = (void (ENTRY*)(GLuint, GLint))GetFuncAddress("glUniform1i");
-    wglChoosePixelFormatARB = (bool (ENTRY*)(HDC, const int*, const float *, unsigned int, int*, unsigned int*))GetFuncAddress("wglChoosePixelFormatARB");
+    glGenBuffers = (TglGenBuffers)GetFuncAddress("glGenBuffers");
+    glBindBuffer = (TglBindBuffer)GetFuncAddress("glBindBuffer");
+    glBufferData = (TglBufferData)GetFuncAddress("glBufferData");
+    glShaderSource = (TglShaderSource)GetFuncAddress("glShaderSource");
+    glCompileShader = (TglCompileShader)GetFuncAddress("glCompileShader");
+    glGetShaderiv = (TglGetShaderiv)GetFuncAddress("glGetShaderiv");
+    glGetShaderInfoLog = (TglGetShaderInfoLog)GetFuncAddress("glGetShaderInfoLog");
+    glAttachShader = (TglAttachShader)GetFuncAddress("glAttachShader");
+    glGetProgramiv = (TglGetProgramiv)GetFuncAddress("glGetProgramiv");
+    glDetachShader = (TglDetachShader)GetFuncAddress("glDetachShader");
+    glDeleteShader = (TglDeleteShader)GetFuncAddress("glDeleteShader");
+    glCreateShader = (TglCreateShader)GetFuncAddress("glCreateShader");
+    glCreateProgram = (TglCreateProgram)GetFuncAddress("glCreateProgram");
+    glLinkProgram = (TglLinkProgram)GetFuncAddress("glLinkProgram");
+    glGetProgramInfoLog = (TglGetProgramInfoLog)GetFuncAddress("glGetProgramInfoLog");
+    glVertexAttribPointer =  (TglVertexAttribPointer)GetFuncAddress("glVertexAttribPointer");
+    glVertexAttribIPointer =  (TglVertexAttribIPointer)GetFuncAddress("glVertexAttribIPointer");
+    glEnableVertexAttribArray = (TglEnableVertexAttribArray)GetFuncAddress("glEnableVertexAttribArray");
+    glUseProgram = (TglUseProgram)GetFuncAddress("glUseProgram");
+    wglCreateContextAttribsARB = (TwglCreateContextAttribsARB)GetFuncAddress("wglCreateContextAttribsARB");
+    glGenVertexArrays = (TglGenVertexArrays)GetFuncAddress("glGenVertexArrays");
+    glBindVertexArray = (TglBindVertexArray)GetFuncAddress("glBindVertexArray");
+    glUniformMatrix4fv = (TglUniformMatrix4fv)GetFuncAddress("glUniformMatrix4fv");
+    glGetAttribLocation = (TglGetAttribLocation)GetFuncAddress("glGetAttribLocation");
+    glGetUniformLocation = (TglGetUniformLocation)GetFuncAddress("glGetUniformLocation");
+    glUniform3fv = (TglUniform3fv)GetFuncAddress("glUniform3fv");
+    glUniform2fv = (TglUniform2fv)GetFuncAddress("glUniform2fv");
+    glUniform1i = (TglUniform1i)GetFuncAddress("glUniform1i");
+    wglChoosePixelFormatARB = (TwglChoosePixelFormatARB)GetFuncAddress("wglChoosePixelFormatARB");
     
     assert(glGenBuffers);
     assert(glBindBuffer);
